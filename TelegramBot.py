@@ -1,30 +1,46 @@
 import asyncio
 import logging
+from threading import Thread
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import exceptions, executor
+from server import *
+
+
+class SmartDispatcher(Dispatcher):
+
+    # def message_handler(self):
+    #     Dispatcher.message_handler(self)
+
+    @message_handler(content_types=['text'])
+    async def get_text_messages(msg: types.Message):
+        if msg.text.lower() == 'привет':
+            print(msg.from_user.id)
+            await msg.answer('Привет!')
+        else:
+            await msg.answer('Не понимаю, что это значит.')
+
+    # def run(self, host, port):
+    #     asyncio.run(run_server(host, port))
+    #
+    # async def run_server(self, host, port):
+    #     server = await asyncio.start_server(serve_client, host, port)
+    #     await server.serve_forever()
+
 
 API_TOKEN = "1924016224:AAF4TufT_s-WLu5a1WbXOl04NL9Wfq0MpEI"
-
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('broadcast')
-
 bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
-dp = Dispatcher(bot)
+# dp =
+dp = SmartDispatcher(bot)
+
+# @dp.message_handler(commands=['start', 'help'])
+# async def send_welcome(msg: types.Message):
+#     await msg.reply_to_message(f"Я бот. Приятно познакомиться,{msg.from_user.first_name}")
 
 
-@dp.message_handler(commands=['start', 'help'])
-async def send_welcome(msg: types.Message):
-    await msg.reply_to_message(f"Я бот. Приятно познакомиться,{msg.from_user.first_name}")
 
-
-@dp.message_handler(content_types=['text'])
-async def get_text_messages(msg: types.Message):
-    if msg.text.lower() == 'привет':
-        print(msg.from_user.id)
-        await msg.answer('Привет!')
-    else:
-        await msg.answer('Не понимаю, что это значит.')
 
 
 def get_users():
@@ -33,7 +49,7 @@ def get_users():
 
     In this example returns some random ID's
     """
-    yield from (936364717, 936364717)
+    yield from (936364717, )
 
 
 async def send_message(user_id: int, text: str, disable_notification: bool = False) -> bool:
@@ -65,7 +81,7 @@ async def send_message(user_id: int, text: str, disable_notification: bool = Fal
     return False
 
 
-async def broadcaster() -> int:
+async def broadcaster(msg) -> int:
     """
     Simple broadcaster
 
@@ -74,7 +90,7 @@ async def broadcaster() -> int:
     count = 0
     try:
         for user_id in get_users():
-            if await send_message(user_id, '<b>Hello!</b>'):
+            if await send_message(user_id, f'<a>{msg.decode()}!</a>'):
                 count += 1
             await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
     finally:
@@ -83,11 +99,8 @@ async def broadcaster() -> int:
     return count
 
 
-async def sending():
-    await broadcaster()
-
-
 if __name__ == '__main__':
+    # asyncio.run(run_server('127.0.0.1', 1234))
+    # serv = Thread(target=asyncio.run, args=(run_server('127.0.0.1', 1234),))
+    # serv.start()
     executor.start_polling(dp)
-    executor.start(dp, sending())
-    print("Work")

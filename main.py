@@ -83,15 +83,8 @@ async def broadcaster(msg) -> int:
     return count
 
 
-async def sending():
-    await broadcaster()
-
-
 if __name__ == '__main__':
-    # tg = Thread(target=executor.start_polling, args=(dp,))
-    # tg.start()
+    # asyncio.run(run_server('127.0.0.1', 1234))
     serv = Thread(target=asyncio.run, args=(run_server('127.0.0.1', 1234),))
     serv.start()
     executor.start_polling(dp)
-    # executor.start(dp, sending())
-    # print("Work")
