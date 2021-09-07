@@ -88,6 +88,6 @@ async def sending():
 
 
 if __name__ == '__main__':
-    # executor.start_polling(dp)
-    # executor.start(dp, broadcaster())
+    executor.start_polling(dp)
     executor.start(dp, sending())
+    print("Work")

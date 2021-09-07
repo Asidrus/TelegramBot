@@ -1,104 +1,16 @@
-# from TelegramBot import TelegramBot
-from aiogram import Bot, types
-from aiogram.dispatcher import Dispatcher
-from aiogram.utils import executor
-from time import sleep
-import select
-import socket
-import threading
 import asyncio
 import logging
+from threading import Thread
+
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import exceptions, executor
+from server import *
 
 API_TOKEN = "1924016224:AAF4TufT_s-WLu5a1WbXOl04NL9Wfq0MpEI"
-
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('broadcast')
-
 bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
-
-SERVER_ADDRESS = ('localhost', 2345)
-MAX_CONNECTIONS = 10
-INPUTS = list()
-OUTPUTS = list()
-
-
-def get_non_blocking_server_socket():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.setblocking(0)
-    server.bind(SERVER_ADDRESS)
-    server.listen(MAX_CONNECTIONS)
-    return server
-
-
-def handle_readables(readables, server):
-    """
-    Обработка появления событий на входах
-    """
-    for resource in readables:
-        # Если событие исходит от серверного сокета, то мы получаем новое подключение
-        if resource is server:
-            connection, client_address = resource.accept()
-            connection.setblocking(0)
-            INPUTS.append(connection)
-            print("new connection from {address}".format(address=client_address))
-        # Если событие исходит не от серверного сокета, но сработало прерывание на наполнение входного буффера
-        else:
-            data = ""
-            try:
-                data = resource.recv(1024)
-            # Если сокет был закрыт на другой стороне
-            except ConnectionResetError:
-                pass
-            if data:
-                # Вывод полученных данных на консоль
-                print("getting data: {data}".format(data=str(data)))
-                # Говорим о том, что мы будем еще и писать в данный сокет
-                if resource not in OUTPUTS:
-                    # OUTPUTS.append(resource)
-                    resource.send(data)
-                    # executor.start(dp, broadcaster())
-                    t0 = threading.Thread(broadcaster())
-                    t0.start()
-            # Если данных нет, но событие сработало, то ОС нам отправляет флаг о полном прочтении ресурса и его закрытии
-            else:
-                # Очищаем данные о ресурсе и закрываем дескриптор
-                clear_resource(resource)
-
-
-def clear_resource(resource):
-    """
-    Метод очистки ресурсов использования сокета
-    """
-    if resource in OUTPUTS:
-        OUTPUTS.remove(resource)
-    if resource in INPUTS:
-        INPUTS.remove(resource)
-    resource.close()
-    print('closing connection ' + str(resource))
-
-
-def handle_writables(writables):
-    # Данное событие возникает когда в буффере на запись освобождается место
-    for resource in writables:
-        try:
-            resource.send(bytes('Hello from server!', encoding='UTF-8'))
-        except OSError:
-            clear_resource(resource)
-
-
-def server_up():
-    server_socket = get_non_blocking_server_socket()
-    INPUTS.append(server_socket)
-    print("server is running, please, press ctrl+c to stop")
-    try:
-        while INPUTS:
-            readables, writables, exceptional = select.select(INPUTS, OUTPUTS, INPUTS)
-            handle_readables(readables, server_socket)
-            # handle_writables(writables)
-    except KeyboardInterrupt:
-        clear_resource(server_socket)
-        print("Server stopped! Thank you for using!")
 
 
 @dp.message_handler(commands=['start', 'help'])
@@ -121,7 +33,7 @@ def get_users():
 
     In this example returns some random ID's
     """
-    yield from (936364717, 936364717)
+    yield from (936364717, )
 
 
 async def send_message(user_id: int, text: str, disable_notification: bool = False) -> bool:
@@ -153,7 +65,7 @@ async def send_message(user_id: int, text: str, disable_notification: bool = Fal
     return False
 
 
-async def broadcaster() -> int:
+async def broadcaster(msg) -> int:
     """
     Simple broadcaster
 
@@ -162,7 +74,7 @@ async def broadcaster() -> int:
     count = 0
     try:
         for user_id in get_users():
-            if await send_message(user_id, '<b>Hello!</b>'):
+            if await send_message(user_id, f'<a>{msg.decode()}!</a>'):
                 count += 1
             await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
     finally:
@@ -170,10 +82,16 @@ async def broadcaster() -> int:
 
     return count
 
-t2 = threading.Thread(target=server_up)
-t2.start()
 
-executor.start_polling(dp)
+async def sending():
+    await broadcaster()
 
-# if __name__ == "__main__":
-#     TelegramBot()
+
+if __name__ == '__main__':
+    # tg = Thread(target=executor.start_polling, args=(dp,))
+    # tg.start()
+    serv = Thread(target=asyncio.run, args=(run_server('127.0.0.1', 1234),))
+    serv.start()
+    executor.start_polling(dp)
+    # executor.start(dp, sending())
+    # print("Work")
