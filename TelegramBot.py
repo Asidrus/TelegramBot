@@ -6,6 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('broadcast')
 
+counter = 0
 
 def get_users():
     """
@@ -61,6 +62,47 @@ class TelegramBot(Bot):
         finally:
             log.info(f"{count} messages successful sent.")
         return count
+
+    async def serve_client(self, reader, writer):
+        global counter
+        cid = counter
+        counter += 1  # Потоко-безопасно, так все выполняется в одном потоке
+        print(f'Client #{cid} connected')
+
+        request = await self.read_request(reader)
+        if request is None:
+            print(f'Client #{cid} unexpectedly disconnected')
+        else:
+            response = await self.handle_request(request)
+            await self.write_response(writer, response, cid)
+
+    async def handle_request(self, request):
+        await asyncio.sleep(5)
+        return request[::-1]
+
+    async def read_request(self, reader, delimiter=b'!'):
+        request = bytearray()
+        while True:
+            chunk = await reader.read(4)
+            if not chunk:
+                # Клиент преждевременно отключился.
+                break
+            request += chunk
+            if delimiter in request:
+                return request
+        return None
+
+    async def write_response(self, writer, response, cid):
+        await self.broadcaster(response)
+        print(response)
+        writer.write(response)
+        await writer.drain()
+        writer.close()
+        print(f'Client #{cid} has been served')
+
+    async def run_server(self, host, port):
+        server = await asyncio.start_server(self.serve_client, host, port)
+        await server.serve_forever()
 
 
 if __name__ == "__main__":
