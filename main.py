@@ -1,8 +1,7 @@
 from aiogram import Bot, Dispatcher, types
-from aiogram.utils import exceptions, executor
+from aiogram.utils import executor
 from TelegramBot import TelegramBot
 import asyncio
-# from server import run_server
 
 API_TOKEN = "1924016224:AAF4TufT_s-WLu5a1WbXOl04NL9Wfq0MpEI"
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
@@ -23,8 +22,24 @@ async def get_text_messages(msg: types.Message):
         await msg.answer('Не понимаю, что это значит.')
 
 
-loop = asyncio.new_event_loop()
-loop.create_task(bot.run_server("localhost", 1234))
+def main():
+    loop = asyncio.new_event_loop()
+    loop.create_task(bot.run_server("localhost", 1234))
 
-ex = executor.Executor(dp, loop=loop)
-ex.start_polling()
+    ex = executor.Executor(dp, loop=loop)
+    ex.start_polling()
+
+
+def _test():
+    with open("ids", "r") as r:
+        data = r.readlines()
+    print(data)
+    test_id = '936364717'
+    print([test_id == id[:-2] for id in data])
+
+
+if __name__ == "__main__":
+    # main()
+    _test()
+
+
