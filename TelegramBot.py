@@ -103,8 +103,3 @@ class TelegramBot(Bot):
     async def run_server(self, host, port):
         server = await asyncio.start_server(self.serve_client, host, port)
         await server.serve_forever()
-
-
-if __name__ == "__main__":
-    API_TOKEN = "1924016224:AAF4TufT_s-WLu5a1WbXOl04NL9Wfq0MpEI"
-    bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
