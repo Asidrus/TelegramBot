@@ -1,4 +1,5 @@
 import asyncio
+import asyncpg
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import exceptions, executor
 
@@ -8,13 +9,23 @@ log = logging.getLogger('broadcast')
 
 counter = 0
 
-def get_users():
-    """
-    Return users list
+users = []
 
-    In this example returns some random ID's
-    """
-    yield from (936364717,)
+
+def get_users():
+    yield from users
+
+
+def read_users():
+    with open("ids", "r") as r:
+        data = r.readlines()
+    data = [d[:-1] for d in data]
+    return data
+
+
+def write_users(user_id):
+    with open("ids", "a") as w:
+        w.writelines(user_id + "\n")
 
 
 class TelegramBot(Bot):
@@ -56,7 +67,7 @@ class TelegramBot(Bot):
         count = 0
         try:
             for user_id in get_users():
-                if await self._send_message(user_id, f'<a>{msg.decode()}!</a>'):
+                if await self._send_message(user_id, f'{msg}'):
                     count += 1
                 await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
         finally:
@@ -93,7 +104,7 @@ class TelegramBot(Bot):
         return None
 
     async def write_response(self, writer, response, cid):
-        await self.broadcaster(response)
+        await self.broadcaster(response.decode())
         print(response)
         writer.write(response)
         await writer.drain()
@@ -103,3 +114,34 @@ class TelegramBot(Bot):
     async def run_server(self, host, port):
         server = await asyncio.start_server(self.serve_client, host, port)
         await server.serve_forever()
+
+users = read_users()
+
+
+class db:
+
+    user = ""
+    password = ""
+    database = ""
+    host = ""
+
+    async def run_db(self):
+        self.conn = await asyncpg.connect(user=self.user,
+                                     password=self.password,
+                                     database=self.database,
+                                     host=self.host)
+
+    # async def get(self, request):
+    #     values = await self.conn.fetch("SELECT * FROM mytable WHERE id = $1")
+
+    async def add_user(self, data):
+        await self.conn.fetch(
+            f"""INSERT into users (id, is_bot, first_name, last_name, language_code) 
+            Values({data["id"]},{data["is_bot"]},{data["first_name"]},{data["last_name"]},{data["language_code"]})"""
+        )
+
+    async def get_user(self, ids: list):
+        return await self.conn.fetch(f"Select * from users where id in {ids}")
+
+    async def close(self):
+        await self.conn.close()
