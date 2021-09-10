@@ -30,6 +30,8 @@ def write_users(user_id):
 
 class TelegramBot(Bot):
 
+    db = None
+
     async def _send_message(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
         """
         Safe messages sender
@@ -66,8 +68,8 @@ class TelegramBot(Bot):
         """
         count = 0
         try:
-            for user_id in get_users():
-                if await self._send_message(user_id, f'{msg}'):
+            for user_id in await self.db.conn.fetch(f"Select id from users"):
+                if await self._send_message(user_id["id"], f'{msg}'):
                     count += 1
                 await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
         finally:
@@ -115,15 +117,19 @@ class TelegramBot(Bot):
         server = await asyncio.start_server(self.serve_client, host, port)
         await server.serve_forever()
 
+
 users = read_users()
 
 
-class db:
+class DataBase:
 
-    user = ""
-    password = ""
-    database = ""
-    host = ""
+    user = "kali"
+    password = "P3N7dbw3"
+    database = "telegram"
+    host = "localhost"
+
+    async def get_all_id(self):
+        return await self.conn.fetch(f"Select id from users")
 
     async def run_db(self):
         self.conn = await asyncpg.connect(user=self.user,
@@ -131,17 +137,20 @@ class db:
                                      database=self.database,
                                      host=self.host)
 
-    # async def get(self, request):
-    #     values = await self.conn.fetch("SELECT * FROM mytable WHERE id = $1")
-
     async def add_user(self, data):
+        print(data)
+        print(f"""INSERT into users (id, is_bot, first_name, last_name, language_code) 
+            Values({data["id"]},{data["is_bot"]},{data["first_name"]},{data["last_name"]},{data["language_code"]})""")
         await self.conn.fetch(
             f"""INSERT into users (id, is_bot, first_name, last_name, language_code) 
-            Values({data["id"]},{data["is_bot"]},{data["first_name"]},{data["last_name"]},{data["language_code"]})"""
+            Values({data["id"]},{data["is_bot"]},'{data["first_name"]}','{data["last_name"]}','{data["language_code"]}')"""
         )
 
-    async def get_user(self, ids: list):
-        return await self.conn.fetch(f"Select * from users where id in {ids}")
+    async def get_user(self, id):
+        if type(id) == int:
+            return await self.conn.fetch(f"Select * from users where id = {id}")
+        elif type(id) == tuple:
+            return await self.conn.fetch(f"Select * from users where id in {id}")
 
     async def close(self):
         await self.conn.close()

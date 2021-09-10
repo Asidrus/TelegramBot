@@ -1,7 +1,7 @@
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 import TelegramBot
-from TelegramBot import TelegramBot, read_users, write_users, users
+from TelegramBot import TelegramBot, read_users, write_users, users, DataBase
 import asyncio
 
 API_TOKEN = "1924016224:AAF4TufT_s-WLu5a1WbXOl04NL9Wfq0MpEI"
@@ -26,9 +26,9 @@ async def send_help(msg: types.Message):
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(msg: types.Message):
-    user_id = msg.from_user.id
-    if user_id in users:
-        write_users(user_id)
+    res = await dp.bot.db.get_user(msg.from_user.id)
+    if len(res) == 0:
+        await dp.bot.db.add_user(msg["from"])
         await msg.answer("Вы успешно подписаны на оповещения!\nЧтобы отписаться воспользуйтесь /unsubscribe")
     else:
         await msg.answer("Вы уже подписаны\nЧтобы отписаться воспользуйтесь /unsubscribe")
@@ -40,23 +40,23 @@ async def send_broadcast(msg: types.Message):
     text = msg["text"]
     first_name = msg["from"]["first_name"]
     last_name = msg["from"]["last_name"]
-    text = f"""<i>{first_name} {last_name}</i> всем: \n <b>{text[text.find(' '):]}</b>"""
+    text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[text.find(' ')+1:]}</b>"""
     await dp.bot.broadcaster(text)
 
 
 @dp.message_handler(content_types=['text'])
 async def get_text_messages(msg: types.Message):
     if msg.text.lower() == 'привет':
-        print(msg.from_user.id)
         await msg.answer('Привет!')
     else:
         await msg.answer('Не понимаю, что это значит.')
 
 
 def main():
+    bot.db = DataBase()
     loop = asyncio.new_event_loop()
     loop.create_task(bot.run_server("localhost", 1234))
-
+    loop.create_task(bot.db.run_db())
     ex = executor.Executor(dp, loop=loop)
     ex.start_polling()
 
