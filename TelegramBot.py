@@ -86,17 +86,13 @@ class TelegramBot(Bot):
         if request is None:
             print(f'Client #{cid} unexpectedly disconnected')
         else:
-            response = await self.handle_request(request)
-            await self.write_response(writer, response, cid)
+            await self.write_response(writer, request, cid)
 
-    async def handle_request(self, request):
-        await asyncio.sleep(5)
-        return request[::-1]
 
     async def read_request(self, reader, delimiter=b'!'):
         request = bytearray()
         while True:
-            chunk = await reader.read(4)
+            chunk = await reader.read(2**10)
             if not chunk:
                 # Клиент преждевременно отключился.
                 break
