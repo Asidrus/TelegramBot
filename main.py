@@ -1,9 +1,13 @@
+from datetime import datetime
+
 import asyncpg
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 import TelegramBot
 from TelegramBot import TelegramBot, read_users, write_users, users, DataBase
 import asyncio
+from matplotlib import pyplot as plt
+import random
 
 API_TOKEN = "1924016224:AAF4TufT_s-WLu5a1WbXOl04NL9Wfq0MpEI"
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
@@ -35,13 +39,52 @@ async def send_welcome(msg: types.Message):
         await msg.answer("Вы уже подписаны\nЧтобы отписаться воспользуйтесь /unsubscribe")
 
 
+async def getNotes(conn, url, From, To):
+    res = await conn.fetch(
+        f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
+    return res
+
+
+@dp.message_handler(commands=['test'])
+async def __test__(msg: types.Message):
+    interval = msg.text.replace('/test ', "")
+    t1 = interval[:interval.find("-")]
+    t2 = interval[interval.find("-") + 1:]
+    try:
+        datetime.strptime(t1, '%d/%m/%Y')
+        datetime.strptime(t2, '%d/%m/%Y')
+    except Exception as e:
+        await msg.answer("Введите в формате: /test 01/01/2021-31/12/2021")
+        return 0
+    connection = await asyncpg.connect(user="kali",
+                                       password="P3N7dbw3",
+                                       database="speedtest",
+                                       host="localhost")
+
+    res = await getNotes(connection, "https://pentaschool.ru", t1, t2)
+    if len(res)==0:
+        await msg.answer("По данному диапозону не найдено тестов")
+    else:
+        await connection.close()
+        plt.plot([(rec["speed"].microsecond / 1000.0 + rec["speed"].second) for rec in res])
+        #
+        # fig4, ax4 = plt.subplots()
+        # ax4.set_title('Hide Outlier Points')
+        # ax4.boxplot([[1, 23, 5, 6], [5, 2, 6, 7], [23, 0, 12, 19], [11, 23, 13, 5]], showfliers=False)
+        # plt.show()
+        #
+        fname = f"../temp/{random.randint(0, 2 ** 32)}.png"
+        plt.savefig(fname)
+        await bot.send_photo(chat_id=msg.from_user.id, photo=open(fname, 'rb'))
+
+
 @dp.message_handler(commands=['broadcast'])
 async def send_broadcast(msg: types.Message):
     print(msg)
     text = msg["text"]
     first_name = msg["from"]["first_name"]
     last_name = msg["from"]["last_name"]
-    text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[text.find(' ')+1:]}</b>"""
+    text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[text.find(' ') + 1:]}</b>"""
     await dp.bot.broadcaster(text)
 
 
@@ -62,38 +105,5 @@ def main():
     ex.start_polling()
 
 
-def _test(test_id):
-    with open("ids", "r") as r:
-        data = r.readlines()
-    print(data)
-    # test_id = '936364717'
-    if any([test_id == id[:-1] for id in data]):
-        print("id exists")
-    else:
-        with open("ids", "a") as w:
-            w.writelines(test_id+"\n")
-        data.append(test_id+"\n")
-    print(data)
-
-
-async def main2():
-    conn = await asyncpg.connect(user="kali",
-                                 password="P3N7dbw3",
-                                 database="speedtest",
-                                 host="localhost")
-    await getNotes(conn, "https://pentaschool.ru", '01/01/2021', str(datetime.now()))
-    await conn.close()
-
-
-async def getNotes(conn, url, From, To):
-    print(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
-    res = await conn.fetch(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
-    print(res)
-    print(res[0]["id"])
-
-
 if __name__ == "__main__":
     main()
-    # _test('936364716')
-
-
