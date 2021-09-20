@@ -75,6 +75,22 @@ def _test(test_id):
     print(data)
 
 
+async def main2():
+    conn = await asyncpg.connect(user="kali",
+                                 password="P3N7dbw3",
+                                 database="speedtest",
+                                 host="localhost")
+    await getNotes(conn, "https://pentaschool.ru", '01/01/2021', str(datetime.now()))
+    await conn.close()
+
+
+async def getNotes(conn, url, From, To):
+    print(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
+    res = await conn.fetch(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
+    print(res)
+    print(res[0]["id"])
+
+
 if __name__ == "__main__":
     main()
     # _test('936364716')
