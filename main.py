@@ -40,6 +40,7 @@ async def send_welcome(msg: types.Message):
 
 
 async def getNotes(conn, url, From, To):
+    print(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
     res = await conn.fetch(
         f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
     return res
@@ -51,10 +52,10 @@ async def __test__(msg: types.Message):
     t1 = interval[:interval.find("-")]
     t2 = interval[interval.find("-") + 1:]
     try:
-        datetime.strptime(t1, '%d/%m/%Y')
-        datetime.strptime(t2, '%d/%m/%Y')
+        date1 = datetime.strptime(t1, '%m/%d/%Y')
+        date2 = datetime.strptime(t2, '%m/%d/%Y')
     except Exception as e:
-        await msg.answer("Введите в формате: /test 01/01/2021-31/12/2021")
+        await msg.answer("Введите в формате: /test 01/01/2021-12/31/2021")
         return 0
     connection = await asyncpg.connect(user="kali",
                                        password="P3N7dbw3",
@@ -62,17 +63,22 @@ async def __test__(msg: types.Message):
                                        host="localhost")
 
     res = await getNotes(connection, "https://pentaschool.ru", t1, t2)
-    if len(res)==0:
+    days = (date2-date1).days
+    data = []
+    for i in range(days):
+        data.append([(rec["speed"].microsecond / 1000.0 + rec["speed"].second) for rec in res if
+                     ((rec["datetime"]-date1).days >= i) and ((rec["datetime"]-date1).days < (i+1))])
+    print([rec["datetime"]-date1 for rec in res])
+    if len(res) == 0:
         await msg.answer("По данному диапозону не найдено тестов")
     else:
         await connection.close()
-        plt.plot([(rec["speed"].microsecond / 1000.0 + rec["speed"].second) for rec in res])
-        #
-        # fig4, ax4 = plt.subplots()
-        # ax4.set_title('Hide Outlier Points')
-        # ax4.boxplot([[1, 23, 5, 6], [5, 2, 6, 7], [23, 0, 12, 19], [11, 23, 13, 5]], showfliers=False)
-        # plt.show()
-        #
+        # plt.plot([(rec["speed"].microsecond / 1000.0 + rec["speed"].second) for rec in res])
+
+        fig4, ax4 = plt.subplots()
+        ax4.set_title('Hide Outlier Points')
+        ax4.boxplot(data, showfliers=False)
+
         fname = f"../temp/{random.randint(0, 2 ** 32)}.png"
         plt.savefig(fname)
         await bot.send_photo(chat_id=msg.from_user.id, photo=open(fname, 'rb'))
