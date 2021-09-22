@@ -68,7 +68,6 @@ async def __test__(msg: types.Message):
     for i in range(days):
         data.append([(rec["speed"].microsecond / 1000.0 + rec["speed"].second) for rec in res if
                      ((rec["datetime"]-date1).days >= i) and ((rec["datetime"]-date1).days < (i+1))])
-    print([rec["datetime"]-date1 for rec in res])
     if len(res) == 0:
         await msg.answer("По данному диапозону не найдено тестов")
     else:
@@ -86,7 +85,6 @@ async def __test__(msg: types.Message):
 
 @dp.message_handler(commands=['broadcast'])
 async def send_broadcast(msg: types.Message):
-    print(msg)
     text = msg["text"]
     first_name = msg["from"]["first_name"]
     last_name = msg["from"]["last_name"]

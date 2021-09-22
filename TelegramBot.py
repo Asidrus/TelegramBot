@@ -88,8 +88,7 @@ class TelegramBot(Bot):
         else:
             await self.write_response(writer, request, cid)
 
-
-    async def read_request(self, reader, delimiter=b'!'):
+    async def read_request(self, reader, delimiter=b'#END'):
         request = bytearray()
         while True:
             chunk = await reader.read(2**10)
@@ -98,12 +97,11 @@ class TelegramBot(Bot):
                 break
             request += chunk
             if delimiter in request:
-                return request
+                return request[:-4]
         return None
 
     async def write_response(self, writer, response, cid):
         await self.broadcaster(response.decode())
-        print(response)
         writer.write(response)
         await writer.drain()
         writer.close()
@@ -134,7 +132,6 @@ class DataBase:
                                      host=self.host)
 
     async def add_user(self, data):
-        print(data)
         print(f"""INSERT into users (id, is_bot, first_name, last_name, language_code) 
             Values({data["id"]},{data["is_bot"]},{data["first_name"]},{data["last_name"]},{data["language_code"]})""")
         await self.conn.fetch(
