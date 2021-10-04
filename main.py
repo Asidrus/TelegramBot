@@ -4,7 +4,7 @@ import asyncpg
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 import TelegramBot
-from TelegramBot import TelegramBot, read_users, write_users, users, DataBase
+from TelegramBot import TelegramBot, DataBase
 import asyncio
 from matplotlib import pyplot as plt
 import random

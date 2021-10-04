@@ -9,24 +9,6 @@ log = logging.getLogger('broadcast')
 
 counter = 0
 
-users = []
-
-
-def get_users():
-    yield from users
-
-
-def read_users():
-    with open("ids", "r") as r:
-        data = r.readlines()
-    data = [d[:-1] for d in data]
-    return data
-
-
-def write_users(user_id):
-    with open("ids", "a") as w:
-        w.writelines(user_id + "\n")
-
 
 class TelegramBot(Bot):
 
@@ -110,9 +92,6 @@ class TelegramBot(Bot):
     async def run_server(self, host, port):
         server = await asyncio.start_server(self.serve_client, host, port)
         await server.serve_forever()
-
-
-users = read_users()
 
 
 class DataBase:
