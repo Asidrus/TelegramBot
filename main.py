@@ -8,16 +8,12 @@ from TelegramBot import TelegramBot, DataBase
 import asyncio
 from matplotlib import pyplot as plt
 import random
+from config import *
 
-API_TOKEN = "1924016224:AAF4TufT_s-WLu5a1WbXOl04NL9Wfq0MpEI"
+
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
 
-
-# @dp.message_handler(commands=['start', 'help'])
-# async def send_welcome(msg: types.Message):
-#
-#     await msg.reply_to_message(f"Я бот. Приятно познакомиться,{msg.from_user.first_name}")
 
 @dp.message_handler(commands=['help'])
 async def send_help(msg: types.Message):
@@ -57,8 +53,8 @@ async def __test__(msg: types.Message):
     except Exception as e:
         await msg.answer("Введите в формате: /test 01/01/2021-12/31/2021")
         return 0
-    connection = await asyncpg.connect(user="kali",
-                                       password="P3N7dbw3",
+    connection = await asyncpg.connect(user=db_user,
+                                       password=db_password,
                                        database="speedtest",
                                        host="localhost")
 

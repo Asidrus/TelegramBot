@@ -3,7 +3,10 @@ import asyncpg
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import exceptions, executor
 
+from config import *
+
 import logging
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('broadcast')
 
@@ -11,7 +14,6 @@ counter = 0
 
 
 class TelegramBot(Bot):
-
     db = None
 
     async def _send_message(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
@@ -73,7 +75,7 @@ class TelegramBot(Bot):
     async def read_request(self, reader, delimiter=b'#END'):
         request = bytearray()
         while True:
-            chunk = await reader.read(2**10)
+            chunk = await reader.read(2 ** 10)
             if not chunk:
                 # Клиент преждевременно отключился.
                 break
@@ -95,9 +97,6 @@ class TelegramBot(Bot):
 
 
 class DataBase:
-
-    user = "kali"
-    password = "P3N7dbw3"
     database = "telegram"
     host = "localhost"
 
@@ -105,10 +104,10 @@ class DataBase:
         return await self.conn.fetch(f"Select id from users")
 
     async def run_db(self):
-        self.conn = await asyncpg.connect(user=self.user,
-                                     password=self.password,
-                                     database=self.database,
-                                     host=self.host)
+        self.conn = await asyncpg.connect(user=db_user,
+                                          password=db_password,
+                                          database=self.database,
+                                          host=self.host)
 
     async def add_user(self, data):
         print(f"""INSERT into users (id, is_bot, first_name, last_name, language_code) 
