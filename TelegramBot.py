@@ -97,8 +97,7 @@ class TelegramBot(Bot):
 
 
 class DataBase:
-    database = "telegram"
-    host = "localhost"
+
 
     async def get_all_id(self):
         return await self.conn.fetch(f"Select id from users")
@@ -106,8 +105,8 @@ class DataBase:
     async def run_db(self):
         self.conn = await asyncpg.connect(user=db_user,
                                           password=db_password,
-                                          database=self.database,
-                                          host=self.host)
+                                          database=database,
+                                          host=host)
 
     async def add_user(self, data):
         print(f"""INSERT into users (id, is_bot, first_name, last_name, language_code) 
