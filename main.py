@@ -3,12 +3,12 @@ from datetime import datetime
 import asyncpg
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
-import TelegramBot
-from TelegramBot import TelegramBot, DataBase
+from libs.telegrambot import TelegramBot
+from libs.database import DataBase
 import asyncio
 from matplotlib import pyplot as plt
 import random
-from config import *
+from credentials import *
 
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
@@ -99,7 +99,7 @@ async def get_text_messages(msg: types.Message):
 def main():
     bot.db = DataBase()
     loop = asyncio.new_event_loop()
-    loop.create_task(bot.run_server("localhost", 1234))
+    loop.create_task(bot.run_server(socket_ip, socket_port))
     loop.create_task(bot.db.run_db())
     ex = executor.Executor(dp, loop=loop)
     ex.start_polling()
