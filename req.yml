@@ -1,0 +1,5 @@
+name: telegrambot
+channels:
+  - defaults
+  - conda-forge
+prefix: /home/kali/anaconda3/envs/telegrambot
