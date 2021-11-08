@@ -101,7 +101,6 @@ def main():
     bot.db = DataBase()
     loop = asyncio.new_event_loop()
     loop.create_task(bot.run_server(socket_ip, socket_port))
-    # loop.create_task(bot.db.run_db())
     ex = executor.Executor(dp, loop=loop)
     ex.start_polling()
 
