@@ -1,5 +1,5 @@
 build:
-	docker build . --tag autotest
+	docker build . --tag telegrambot
 remove:
 	docker rmi -f telegrambot
 run:
