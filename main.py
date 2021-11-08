@@ -10,9 +10,10 @@ from matplotlib import pyplot as plt
 import random
 from credentials import *
 
-
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
+
+db_data = {"user": db_user, "password": db_password, "database": db_name, "host": db_host}
 
 
 @dp.message_handler(commands=['help'])
@@ -59,11 +60,11 @@ async def __test__(msg: types.Message):
                                        host="localhost")
 
     res = await getNotes(connection, "https://pentaschool.ru", t1, t2)
-    days = (date2-date1).days
+    days = (date2 - date1).days
     data = []
     for i in range(days):
         data.append([(rec["speed"].microsecond / 1000.0 + rec["speed"].second) for rec in res if
-                     ((rec["datetime"]-date1).days >= i) and ((rec["datetime"]-date1).days < (i+1))])
+                     ((rec["datetime"] - date1).days >= i) and ((rec["datetime"] - date1).days < (i + 1))])
     if len(res) == 0:
         await msg.answer("По данному диапозону не найдено тестов")
     else:
@@ -100,10 +101,11 @@ def main():
     bot.db = DataBase()
     loop = asyncio.new_event_loop()
     loop.create_task(bot.run_server(socket_ip, socket_port))
-    loop.create_task(bot.db.run_db())
+    # loop.create_task(bot.db.run_db())
     ex = executor.Executor(dp, loop=loop)
     ex.start_polling()
 
 
 if __name__ == "__main__":
     main()
+

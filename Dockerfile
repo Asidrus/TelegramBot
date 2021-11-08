@@ -8,5 +8,3 @@ RUN echo "source activate telegrambot" > ~/.bashrc
 ENV PATH /opt/conda/envs/telegrambot/bin:$PATH
 COPY . .
 
-#RUN pip3 install aiogram asyncio asyncpg matplotlib
-
