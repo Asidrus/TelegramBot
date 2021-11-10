@@ -23,7 +23,6 @@ async def read_request(reader):
             # Клиент преждевременно отключился.
             break
         request += chunk
-        print(chunk)
         try:
             data = json.loads(request.decode("utf-8").replace("'", "\""))
             return data
