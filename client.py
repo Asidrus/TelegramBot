@@ -4,7 +4,7 @@ from time import time
 
 class Client:
 
-    def __init__(self, ip: str = "localhost", port: int = 1234, name: dict = {"first_name": "autotest", "last_name": ""}, header: str = "", debug=0):
+    def __init__(self, ip: str = "localhost", port: int = 2345, name: dict = {"first_name": "autotest", "last_name": ""}, header: str = "", debug=0):
         self.IP = ip
         self.port = port
         self.name = name

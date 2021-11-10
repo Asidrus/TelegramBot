@@ -44,4 +44,4 @@ async def run_server(host, port):
     await server.serve_forever()
 
 if __name__ == "__main__":
-    asyncio.run(run_server("localhost",1234))
+    asyncio.run(run_server("localhost",2345))

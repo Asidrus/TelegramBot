@@ -100,9 +100,9 @@ async def get_text_messages(msg: types.Message):
 def main():
     bot.db = DataBase()
     loop = asyncio.new_event_loop()
-    print(socket_ip,socket_port)
     loop.create_task(bot.run_server(socket_ip, socket_port))
     # loop.create_task(bot.db.run_db())
+    asyncio.set_event_loop(loop)
     ex = executor.Executor(dp, loop=loop)
     ex.start_polling()
 

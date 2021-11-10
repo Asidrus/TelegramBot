@@ -83,7 +83,7 @@ class TelegramBot(Bot):
             # await self.write_response(writer, request, cid)
             print(request)
 
-    async def read_request(reader, delimiter=b'#END'):
+    async def read_request(self, reader, delimiter=b'#END'):
         request = bytearray()
         while True:
             chunk = await reader.read(2 ** 10)
