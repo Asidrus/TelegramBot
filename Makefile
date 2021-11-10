@@ -6,7 +6,7 @@ run:
 	docker run \
 		-d \
 		--rm \
-		-p 1234:1234 \
+		--net=host \
 		--name='telegrambot' \
 		telegrambot \
 		bash -c \
