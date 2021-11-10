@@ -6,7 +6,7 @@ from aiogram.utils import executor
 from libs.telegrambot import TelegramBot
 from libs.database import DataBase
 import asyncio
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, use
 import random
 from credentials import *
 
@@ -28,12 +28,13 @@ async def send_help(msg: types.Message):
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(msg: types.Message):
+
     res = await dp.bot.db.get_user(msg.from_user.id)
     if len(res) == 0:
         await dp.bot.db.add_user(msg["from"])
-        await msg.answer("Вы успешно подписаны на оповещения!\nЧтобы отписаться воспользуйтесь /unsubscribe")
+        await msg.answer("Вы успешно подписались на оповещения!\Отписаться от рассылки можно с помощью команды /unsubscribe")
     else:
-        await msg.answer("Вы уже подписаны\nЧтобы отписаться воспользуйтесь /unsubscribe")
+                await msg.answer("Вы уже подписаны\nОтписаться от рассылки можно с помощью команды /unsubscribe")
 
 
 async def getNotes(conn, url, From, To):
@@ -86,8 +87,7 @@ async def send_broadcast(msg: types.Message):
     first_name = msg["from"]["first_name"]
     last_name = msg["from"]["last_name"]
     text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[text.find(' ') + 1:]}</b>"""
-    await dp.bot.broadcaster(text)
-
+    await dp.bot.broadcaster(text, msg.from_user.id)
 
 @dp.message_handler(content_types=['text'])
 async def get_text_messages(msg: types.Message):
@@ -100,6 +100,7 @@ async def get_text_messages(msg: types.Message):
 def main():
     bot.db = DataBase()
     loop = asyncio.new_event_loop()
+    print(socket_ip,socket_port)
     loop.create_task(bot.run_server(socket_ip, socket_port))
     # loop.create_task(bot.db.run_db())
     ex = executor.Executor(dp, loop=loop)

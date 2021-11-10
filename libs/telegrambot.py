@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import exceptions, executor
-
+import json
 
 import logging
 
@@ -42,21 +42,33 @@ class TelegramBot(Bot):
             return True
         return False
 
-    async def broadcaster(self, msg) -> int:
+    async def broadcaster(self, msg, debug=None, id_sender=None) -> int:
         """
         Simple broadcaster
 
         :return: Count of messages
         """
-        count = 0
+        if id_sender is not None:
+            group = await self.db.get_attrForColummn(columns='group_id', table='users', param='uid='+str(id_sender))
+            group = group[0]["group_id"]
+            users_id = await self.db.get_attrForColummn(columns='uid', table='users', param="group_id='"+group+"'")
+            users_id = [rec["uid"] for rec in users_id]
+        else:
+            if debug is None:
+                users_id = await self.db.fetch("SELECT users.uid FROM users LEFT JOIN subscrib ON users.id=subscrib.uid where result_tests='1';")
+                users_id = [rec["uid"] for rec in users_id]
+            else:
+                users_id = await self.db.fetch(f"SELECT users.uid FROM users LEFT JOIN subscrib ON users.id=subscrib.uid where debug='"+ 1 if debug=='True' else 0 +"';")
+                users_id = [rec["uid"] for rec in users_id]
         try:
-            for user_id in await self.db.conn.fetch(f"Select id from users"):
-                if await self._send_message(user_id["id"], f'{msg}'):
-                    count += 1
+            for id in users_id:
+                if await self._send_message(str(id), f'{msg}'):
+                    # обнулить подписку пользователя
+                    pass
                 await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
-        finally:
-            log.info(f"{count} messages successful sent.")
-        return count
+        except Exception as e:
+            raise e
+
 
     async def serve_client(self, reader, writer):
         global counter
@@ -68,9 +80,10 @@ class TelegramBot(Bot):
         if request is None:
             print(f'Client #{cid} unexpectedly disconnected')
         else:
-            await self.write_response(writer, request, cid)
+            # await self.write_response(writer, request, cid)
+            print(request)
 
-    async def read_request(self, reader, delimiter=b'#END'):
+    async def read_request(reader, delimiter=b'#END'):
         request = bytearray()
         while True:
             chunk = await reader.read(2 ** 10)
@@ -78,12 +91,17 @@ class TelegramBot(Bot):
                 # Клиент преждевременно отключился.
                 break
             request += chunk
-            if delimiter in request:
-                return request[:-4]
+            try:
+                data = json.loads(request.decode("utf-8").replace("'", "\""))
+                return data
+            except:
+                pass
+            # if delimiter in request:
+            #     return request[:-2]
         return None
 
     async def write_response(self, writer, response, cid):
-        await self.broadcaster(response.decode())
+        # await self.broadcaster(response.decode())
         writer.write(response)
         await writer.drain()
         writer.close()
@@ -91,6 +109,7 @@ class TelegramBot(Bot):
 
     async def run_server(self, host, port):
         server = await asyncio.start_server(self.serve_client, host, port)
+        print(server)
         await server.serve_forever()
 
 

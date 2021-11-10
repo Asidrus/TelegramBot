@@ -1,18 +1,32 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+import asyncio
+from logging import debug
+from time import time
 
-import socket
+class Client:
 
-MAX_CONNECTIONS = 20
-address_to_server = ('localhost', 8686)
+    def __init__(self, ip: str = "localhost", port: int = 1234, name: dict = {"first_name": "autotest", "last_name": ""}, header: str = "", debug=0):
+        self.IP = ip
+        self.port = port
+        self.name = name
+        self.header = header
+        self.debug = debug
 
-clients = [socket.socket(socket.AF_INET, socket.SOCK_STREAM) for i in range(MAX_CONNECTIONS)]
-for client in clients:
-    client.connect(address_to_server)
+    def send(self, text, ip=None, port=None):
+        asyncio.run(self.asyncSend(text, ip, port))
 
-for i in range(MAX_CONNECTIONS):
-    clients[i].send(bytes("hello from client number " + str(i), encoding='UTF-8'))
+    async def asyncSend(self, text, ip=None, port=None):
+        IP = self.IP if ip is None else ip
+        port = self.port if port is None else port
+        reader, writer = await asyncio.open_connection(IP, port)
+        # print(self.header)
+        # print(text)
+        msg = {"from": self.name, "date": time(), "text": self.header + text, 'debug': self.debug}
+        print(msg)
+        writer.write(str(msg).encode())
+        writer.close()
+        await writer.wait_closed()
 
-for client in clients:
-    data = client.recv(1024)
-    print(str(data))
+
+if __name__ == "__main__":
+    client = Client()
+    client.send("hi")
