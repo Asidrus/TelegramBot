@@ -90,6 +90,7 @@ class TelegramBot(Bot):
         print(f'Client #{cid} has been served')
 
     async def run_server(self, host, port):
+        print("i do")
         server = await asyncio.start_server(self.serve_client, host, port)
         await server.serve_forever()
 
