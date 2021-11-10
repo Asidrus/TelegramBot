@@ -50,7 +50,7 @@ class TelegramBot(Bot):
         """
         count = 0
         try:
-            for user_id in await self.db.conn.fetch(f"Select id from users"):
+            for user_id in await self.db.get_all_id():
                 if await self._send_message(user_id["id"], f'{msg}'):
                     count += 1
                 await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
@@ -90,7 +90,6 @@ class TelegramBot(Bot):
         print(f'Client #{cid} has been served')
 
     async def run_server(self, host, port):
-        print("i do")
         server = await asyncio.start_server(self.serve_client, host, port)
         await server.serve_forever()
 
