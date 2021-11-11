@@ -20,7 +20,7 @@ db_data = {"user": db_user, "password": db_password, "database": db_name, "host"
 async def send_help(msg: types.Message):
     await msg.answer("""
     Полный список команд:
-    /start - подписаться на рассылки
+    /start - 
     /unsubscribe - отписаться от рассылок
     /broadcast [msg] - разослать всем рассылку
     """)
@@ -29,6 +29,7 @@ async def send_help(msg: types.Message):
 @dp.message_handler(commands=['start'])
 async def send_welcome(msg: types.Message):
 
+    
     res = await dp.bot.db.get_user(msg.from_user.id)
     if len(res) == 0:
         await dp.bot.db.add_user(msg["from"])
@@ -87,7 +88,7 @@ async def send_broadcast(msg: types.Message):
     first_name = msg["from"]["first_name"]
     last_name = msg["from"]["last_name"]
     text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[text.find(' ') + 1:]}</b>"""
-    await dp.bot.broadcaster(text, msg.from_user.id)
+    await dp.bot.broadcaster(msg=text, id_sender=msg.from_user.id)
 
 @dp.message_handler(content_types=['text'])
 async def get_text_messages(msg: types.Message):

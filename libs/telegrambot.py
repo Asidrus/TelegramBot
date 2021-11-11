@@ -14,6 +14,7 @@ counter = 0
 class TelegramBot(Bot):
     db = None
 
+    #для отправки сообщения 1 пользователю
     async def _send_message(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
         """
         Safe messages sender
@@ -42,6 +43,7 @@ class TelegramBot(Bot):
             return True
         return False
 
+    #перебор id пользователей
     async def broadcaster(self, msg, debug=None, id_sender=None) -> int:
         """
         Simple broadcaster
@@ -49,17 +51,17 @@ class TelegramBot(Bot):
         :return: Count of messages
         """
         if id_sender is not None:
-            group = await self.db.get_attrForColummn(columns='group_id', table='users', param='uid='+str(id_sender))
+            group = await self.db.get_attrForColummn(columns='group_id', table='users', param='id='+str(id_sender))
             group = group[0]["group_id"]
-            users_id = await self.db.get_attrForColummn(columns='uid', table='users', param="group_id='"+group+"'")
-            users_id = [rec["uid"] for rec in users_id]
+            users_id = await self.db.get_attrForColummn(columns='id', table='users', param="group_id='"+group+"'")
+            users_id = [rec["id"] for rec in users_id]
         else:
-            if debug is None:
-                users_id = await self.db.fetch("SELECT users.uid FROM users LEFT JOIN subscrib ON users.id=subscrib.uid where result_tests='1';")
-                users_id = [rec["uid"] for rec in users_id]
-            else:
-                users_id = await self.db.fetch(f"SELECT users.uid FROM users LEFT JOIN subscrib ON users.id=subscrib.uid where debug='{debug}';")
-                users_id = [rec["uid"] for rec in users_id]
+            if debug is None or debug==0:
+                users_id = await self.db.fetch("SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where result_tests='1';")
+                users_id = [rec["id"] for rec in users_id]
+            elif debug==1:
+                users_id = await self.db.fetch(f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
+                users_id = [rec["id"] for rec in users_id]
         try:
             for id in users_id:
                 if await self._send_message(str(id), f'{msg}'):
@@ -72,18 +74,17 @@ class TelegramBot(Bot):
 
     async def serve_client(self, reader, writer):
         global counter
-        cid = counter
         counter += 1  # Потоко-безопасно, так все выполняется в одном потоке
-        print(f'Client #{cid} connected')
+        print(f'Client connected')
 
         request = await self.read_request(reader)
         if request is None:
-            print(f'Client #{cid} unexpectedly disconnected')
+            print(f'Client  unexpectedly disconnected')
         else:
-            # await self.write_response(writer, request, cid)
+            await self.write_response(writer, request)
             print(request)
 
-    async def read_request(self, reader, delimiter=b'#END'):
+    async def read_request(self, reader):
         request = bytearray()
         while True:
             chunk = await reader.read(2 ** 10)
@@ -100,16 +101,18 @@ class TelegramBot(Bot):
             #     return request[:-2]
         return None
 
-    async def write_response(self, writer, response, cid):
-        # await self.broadcaster(response.decode())
-        writer.write(response)
+    async def write_response(self, writer, response):
+        try:
+            await self.broadcaster(msg=response['text'], debug=response['debug'])
+            writer.write(b"{'status':'OK'}")
+        except:
+            writer.write(b"{'status':'ERROR'}")
         await writer.drain()
         writer.close()
-        print(f'Client #{cid} has been served')
+        print(f'Client  has been served')
 
     async def run_server(self, host, port):
         server = await asyncio.start_server(self.serve_client, host, port)
-        print(server)
         await server.serve_forever()
 
 
