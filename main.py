@@ -3,39 +3,77 @@ from datetime import datetime
 import asyncpg
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
+from keyboards import btnMessage
 from libs.telegrambot import TelegramBot
 from libs.database import DataBase
 import asyncio
 from matplotlib import pyplot as plt, use
 import random
 from credentials import *
+from keyboards import btnMessage
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
+btnMessage = btnMessage()
 
 db_data = {"user": db_user, "password": db_password, "database": db_name, "host": db_host}
 
 
 @dp.message_handler(commands=['help'])
 async def send_help(msg: types.Message):
-    await msg.answer("""
-    Полный список команд:
-    /start - 
-    /unsubscribe - отписаться от рассылок
-    /broadcast [msg] - разослать всем рассылку
-    """)
+    groupUser = await dp.bot.db.get_attrForColummn(columns='group_id',table='users', param=f'uid={msg.from_user.id}')
 
+    if groupUser == '0':
+        await msg.answer("""
+        Полный список команд:
+        /change_group - сменить группу
+        /broadcast [msg] - разослать всем пользователям сообщение
+        /out_subscr - посмотреть свои подписки
+        /chande_subscr - сменить подписки
+        """)
+
+    elif groupUser=='1' or groupUser=='2':
+        await msg.answer("""
+        Полный список команд:
+        /start - активировать чат-бота
+        /broadcast [msg] - разослать всем пользователям из своей группы сообщение
+        /subscribe - подписаться на рассыл0чки
+        /users - посмотреть всех пользователей в моей группе
+        /unsubscribe - отписаться от рассыл0чки
+        /rules - правила бойцовского клуба
+        /leave - покинуть группу
+        """)
+    
+    elif groupUser == '3':
+        await msg.answer("""
+        Полный список команд:
+        /start - активировать чат-бота
+        /broadcast [msg] - разослать всем пользователям сообщение
+        /entance - вход
+        """)
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(msg: types.Message):
-
     
     res = await dp.bot.db.get_user(msg.from_user.id)
     if len(res) == 0:
         await dp.bot.db.add_user(msg["from"])
-        await msg.answer("Вы успешно подписались на оповещения!\Отписаться от рассылки можно с помощью команды /unsubscribe")
+        await msg.reply("Добро пожаловать в наш бойцовский клуб! Меня зовут Антон. Я ваш персональный помощник в дальнейшем. Чтобы узнать о том, что я умею, введите команду /help \n Лирическое отступление \n Вы, наверное, меня спросите, почему Антон? Потому что один разработчик сказал другому разработчику одну мудрую вещь: 'Делай по своему усмотрению'. После этого я и приобрел себе свое имя", reply_markup=btnMessage.inline_kb_subscr)
     else:
-                await msg.answer("Вы уже подписаны\nОтписаться от рассылки можно с помощью команды /unsubscribe")
+        await msg.answer('Приветствую снова, боец')
+
+@dp.callback_query_handler(text='subscr_newslet')
+async def subscriptionProcess(callback_query: types.CallbackQuery):
+    await bot.send_message(callback_query.from_user.id, 'Выберите подписку на которую вы хотите подписаться:')
+
+@dp.message_handler(commands=['rules'])
+async def send_welcome(msg: types.Message):
+    
+    await msg.send_message(msg.from_user.id, r"Первое правило Бойцовского клуба: никому не рассказывать о Бойцовском клубе. \n Второе правило Бойцовского клуба: никогда никому не рассказывать о Бойцовском клубе. \n Третье правило Бойцовского клуба: в схватке участвует только один из команды. Если он не справляется, другие приходят на помощь \n Четвертое правило Бойцовского клуба: оформляй понятные тикеты. \n Пятое правило Бойцовского клуба: бойцы сражаются на тестовом домене.  \n  Седьмое: бой продолжается до тех пор, пока не будут исправлены все баги.  \n  Восьмое и последнее: если вы первый раз в бойцовском клубе, прежде чем вступить в бой, вы должны быть подготовлены к нему и к непонятным ТЗ")
+
+@dp.message_handler(commands=['entance'])
+async def send_welcome(msg: types.Message):
+    await msg.answer('Чтобы продолжить, пожалуйста, введите пароль:')
 
 
 async def getNotes(conn, url, From, To):
@@ -94,6 +132,18 @@ async def send_broadcast(msg: types.Message):
 async def get_text_messages(msg: types.Message):
     if msg.text.lower() == 'привет':
         await msg.answer('Привет!')
+    elif msg.text == '012':
+        photo = open('maxresdefault.jpg', 'rb')
+        msg.answer('Добро пожаловать, господин администратор!')
+        await msg.send_photo(msg.from_user.id, photo)
+
+
+работать только с debug
+
+    elif msg.text == '147':
+        await msg.answer('Добро пожаловать!')
+    elif msg.text == '258':
+        await msg.answer('Добро пожаловать!')
     else:
         await msg.answer('Не понимаю, что это значит.')
 

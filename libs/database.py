@@ -55,8 +55,8 @@ class DataBase:
             Values({data["id"]},{data["is_bot"]},'{data["first_name"]}', '{data["last_name"]}', '3', '{data["language_code"]}')"""
         )
         await connection.fetch(
-            f"""INSERT into subscribes (uid, debug, from_users, result_test) 
-            Values({data["id"]},'0', '0', '0')"""
+            f"""INSERT into subscribes (uid) 
+            Values({data["id"]})"""
         )
 
     @db_connection(**cred)
@@ -74,6 +74,15 @@ class DataBase:
         else:
             print(f"Select {columns} from {table} where {param}")
             return await connection.fetch(f"Select {columns} from {table} where {param}")
+
+    @db_connection(**cred)
+    async def get_attrForColummn(sels, columns: str, table: str, param, connection):
+        if param is None:
+           
+	SET pswd='012'
+	WHERE gid='0';
+            return await connection.fetch(f" UPDATE {table} {columns} from ")
+
 
     @db_connection(**cred)
     async def fetch(self, request: str, connection):
