@@ -76,12 +76,9 @@ class DataBase:
             return await connection.fetch(f"Select {columns} from {table} where {param}")
 
     @db_connection(**cred)
-    async def get_attrForColummn(sels, columns: str, table: str, param, connection):
+    async def updateData(sels, column, table, param, where, id, connection):
         if param is None:
-           
-	SET pswd='012'
-	WHERE gid='0';
-            return await connection.fetch(f" UPDATE {table} {columns} from ")
+            return await connection.fetch(f" UPDATE {table} SET {column}='{param}' where {where}={id}")
 
 
     @db_connection(**cred)

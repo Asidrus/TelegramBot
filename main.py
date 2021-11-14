@@ -58,7 +58,7 @@ async def send_welcome(msg: types.Message):
     res = await dp.bot.db.get_user(msg.from_user.id)
     if len(res) == 0:
         await dp.bot.db.add_user(msg["from"])
-        await msg.reply("Добро пожаловать в наш бойцовский клуб! Меня зовут Антон. Я ваш персональный помощник в дальнейшем. Чтобы узнать о том, что я умею, введите команду /help \n Лирическое отступление \n Вы, наверное, меня спросите, почему Антон? Потому что один разработчик сказал другому разработчику одну мудрую вещь: 'Делай по своему усмотрению'. После этого я и приобрел себе свое имя", reply_markup=btnMessage.inline_kb_subscr)
+        await msg.reply("Добро пожаловать в наш бойцовский клуб! Меня зовут Тостер. Я ваш персональный помощник в дальнейшем. Чтобы узнать о том, что я умею, введите команду /help", reply_markup=btnMessage.inline_kb_subscr)
     else:
         await msg.answer('Приветствую снова, боец')
 
@@ -74,6 +74,10 @@ async def send_welcome(msg: types.Message):
 @dp.message_handler(commands=['entance'])
 async def send_welcome(msg: types.Message):
     await msg.answer('Чтобы продолжить, пожалуйста, введите пароль:')
+
+@dp.message_handler(commands=['change_group'])
+async def send_welcome(msg: types.Message):
+    await msg.answer('Внимание! Вы пытаетесб сменить группу поользователей! Выберите в какую группу вы хотите перейти:')
 
 
 async def getNotes(conn, url, From, To):
@@ -132,19 +136,33 @@ async def send_broadcast(msg: types.Message):
 async def get_text_messages(msg: types.Message):
     if msg.text.lower() == 'привет':
         await msg.answer('Привет!')
-    elif msg.text == '012':
-        photo = open('maxresdefault.jpg', 'rb')
-        msg.answer('Добро пожаловать, господин администратор!')
-        await msg.send_photo(msg.from_user.id, photo)
-
-
-работать только с debug
-
-    elif msg.text == '147':
-        await msg.answer('Добро пожаловать!')
-    elif msg.text == '258':
-        await msg.answer('Добро пожаловать!')
     else:
+        pswd = await dp.bot.get_attrForColummn(columns='pswd', table='group')
+
+        for item in pswd:
+            if msg.text == item:
+                group = await dp.bot.get_attrForColummn(columns='gid', table='group')
+
+                if group == '0':
+                    photo = open('maxresdefault.jpg', 'rb')
+                    msg.answer('Добро пожаловать, господин администратор!')
+                    await msg.send_photo(msg.from_user.id, photo)
+
+                    await  dp.bot.groupTransfer(group,column='debug', id=msg.from_user.id)
+
+                elif group == '1':
+                    await msg.answer('Добро пожаловать в ряды тетировщиков!')
+                    await dp.bot.updateData
+                    
+                    await  dp.bot.groupTransfer(group,column='result_test', id=msg.from_user.id)
+   
+                elif group == '2':
+                    await msg.answer('Добро пожаловать!')
+                    await  dp.bot.groupTransfer(group=group, id=msg.from_user.id)
+                    
+    
+  
+
         await msg.answer('Не понимаю, что это значит.')
 
 

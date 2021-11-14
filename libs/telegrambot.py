@@ -101,6 +101,13 @@ class TelegramBot(Bot):
             #     return request[:-2]
         return None
 
+
+    async def groupTransfer(self, group, id, column=None):
+        if column==None:
+            await self.db.updateData(column=column, table='subscribes',              where='uid', param=1, id=id)
+        
+        await self.db.updateData(column='group_id', table='users', param=group, where='id', id=id)
+
     async def write_response(self, writer, response):
         try:
             await self.broadcaster(msg=response['text'], debug=response['debug'])
