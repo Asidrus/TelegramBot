@@ -77,8 +77,7 @@ class DataBase:
 
     @db_connection(**cred)
     async def updateData(sels, column, table, param, where, id, connection):
-        if param is None:
-            return await connection.fetch(f" UPDATE {table} SET {column}='{param}' where {where}={id}")
+        return await connection.fetch(f" UPDATE {table} SET {column}='{param}' where {where}={id}")
 
 
     @db_connection(**cred)

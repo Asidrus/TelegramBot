@@ -42,7 +42,7 @@ class TelegramBot(Bot):
             log.info(f"Target [ID:{user_id}]: success")
             return True
         return False
-
+ 
     #перебор id пользователей
     async def broadcaster(self, msg, debug=None, id_sender=None) -> int:
         """
@@ -51,9 +51,11 @@ class TelegramBot(Bot):
         :return: Count of messages
         """
         if id_sender is not None:
-            group = await self.db.get_attrForColummn(columns='group_id', table='users', param='id='+str(id_sender))
-            group = group[0]["group_id"]
-            users_id = await self.db.get_attrForColummn(columns='id', table='users', param="group_id='"+group+"'")
+            # group = await self.db.get_attrForColummn(columns='group_id', table='users', param='id='+str(id_sender))
+            # group = group[0]["group_id"]
+            
+            users_id = await self.db.get_attrForColummn(columns='id', table='users')
+            # users_id = await self.db.get_attrForColummn(columns='id', table='users', param="group_id='"+group+"'")
             users_id = [rec["id"] for rec in users_id]
         else:
             if debug is None or debug==0:
@@ -101,12 +103,46 @@ class TelegramBot(Bot):
             #     return request[:-2]
         return None
 
+    async def matchUser(self, group, id):
+        groupUser = await self.db.get_attrForColummn(column = 'group_id', table='users', param=f'uid={id}')
+        group[0]['group_id']
+        if groupUser == group:
+            return True
+        else:
+            self.bot.send_message('Вы не можете воспользоваться данной операцией')
+            return False
 
+    # Для изменения данных в таблицах subscribes и users
     async def groupTransfer(self, group, id, column=None):
         if column==None:
             await self.db.updateData(column=column, table='subscribes',              where='uid', param=1, id=id)
         
         await self.db.updateData(column='group_id', table='users', param=group, where='id', id=id)
+
+    
+
+    async def entanceComm(self, msg, id,  group):
+        pswd = await self.bot.get_attrForColummn(columns='pswd', table='groups')
+        pswd = [rec["pswd"] for rec in pswd]
+        for item in pswd:
+            if msg.text == item:
+                group = await self.bot.get_attrForColummn(columns='gid', table='groups', param=f"pswd='{item}'")
+                group = group[0]["gid"]
+                if group == '0':
+                    photo = open('maxresdefault.jpg', 'rb')
+                    await msg.answer('Добро пожаловать, господин администратор!')
+                    await msg.send_photo(chat_id=id, photo=photo)
+
+                    await self.groupTransfer(group=group, column='debug', id=id)
+
+                elif group == '1':
+                    await msg.answer('Добро пожаловать в ряды тетировщиков!')
+                    await self.bot.updateData
+                    await self.groupTransfer(group=group,column='result_test', id=id)
+
+                elif group == '2':
+                    await msg.answer('Добро пожаловать!')
+                    await self.groupTransfer(group=group, id=id)
 
     async def write_response(self, writer, response):
         try:

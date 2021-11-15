@@ -11,6 +11,8 @@ from matplotlib import pyplot as plt, use
 import random
 from credentials import *
 from keyboards import btnMessage
+import re
+import comands as comm
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
@@ -21,7 +23,9 @@ db_data = {"user": db_user, "password": db_password, "database": db_name, "host"
 
 @dp.message_handler(commands=['help'])
 async def send_help(msg: types.Message):
-    groupUser = await dp.bot.db.get_attrForColummn(columns='group_id',table='users', param=f'uid={msg.from_user.id}')
+    groupUser = await dp.bot.db.get_attrForColummn(columns='group_id',table='users', param=f'id={msg.from_user.id}')
+    groupUser = groupUser[0]["group_id"]
+    print(groupUser)
 
     if groupUser == '0':
         await msg.answer("""
@@ -29,7 +33,7 @@ async def send_help(msg: types.Message):
         /change_group - сменить группу
         /broadcast [msg] - разослать всем пользователям сообщение
         /out_subscr - посмотреть свои подписки
-        /chande_subscr - сменить подписки
+        /chande_subscr - сменить подписку
         """)
 
     elif groupUser=='1' or groupUser=='2':
@@ -62,6 +66,7 @@ async def send_welcome(msg: types.Message):
     else:
         await msg.answer('Приветствую снова, боец')
 
+
 @dp.callback_query_handler(text='subscr_newslet')
 async def subscriptionProcess(callback_query: types.CallbackQuery):
     await bot.send_message(callback_query.from_user.id, 'Выберите подписку на которую вы хотите подписаться:')
@@ -77,7 +82,7 @@ async def send_welcome(msg: types.Message):
 
 @dp.message_handler(commands=['change_group'])
 async def send_welcome(msg: types.Message):
-    await msg.answer('Внимание! Вы пытаетесб сменить группу поользователей! Выберите в какую группу вы хотите перейти:')
+    await msg.answer('Внимание! Вы пытаетесь сменить группу поользователей! Выберите в какую группу вы хотите перейти:')
 
 
 async def getNotes(conn, url, From, To):
@@ -129,41 +134,43 @@ async def send_broadcast(msg: types.Message):
     text = msg["text"]
     first_name = msg["from"]["first_name"]
     last_name = msg["from"]["last_name"]
-    text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[text.find(' ') + 1:]}</b>"""
-    await dp.bot.broadcaster(msg=text, id_sender=msg.from_user.id)
+    ind = text.find(' ')
+    if ind == -1:
+        await msg.answer("все херня")
+    else:
+        text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[ind+1:]}</b>"""
+        await dp.bot.broadcaster(msg=text, id_sender=msg.from_user.id)
+
 
 @dp.message_handler(content_types=['text'])
 async def get_text_messages(msg: types.Message):
-    if msg.text.lower() == 'привет':
-        await msg.answer('Привет!')
+    result = False
+    # groupUser = dp.bot.db.matchUser()
+    is_comm=re.search(r'^/', msg.text) #проверка на / перед словом
+    if is_comm is None:
+        if msg.text.lower() == 'привет':
+            await msg.answer('Привет!')
+        else:
+            await msg.answer('Не понимаю, что это значит.')
     else:
-        pswd = await dp.bot.get_attrForColummn(columns='pswd', table='group')
+        groupUser = await dp.bot.db.get_attrForColummn(column = 'group_id', table='users', param=f'uid={id}')
+        gid = groupUser[0]['group_id']
+        from comands import arrCom as coms
+        commandUser=re.search(r'/\w+', msg.text)  #выборка первого слова
+        # if commandUser in coms[gid]:
+            
 
-        for item in pswd:
-            if msg.text == item:
-                group = await dp.bot.get_attrForColummn(columns='gid', table='group')
-
-                if group == '0':
-                    photo = open('maxresdefault.jpg', 'rb')
-                    msg.answer('Добро пожаловать, господин администратор!')
-                    await msg.send_photo(msg.from_user.id, photo)
-
-                    await  dp.bot.groupTransfer(group,column='debug', id=msg.from_user.id)
-
-                elif group == '1':
-                    await msg.answer('Добро пожаловать в ряды тетировщиков!')
-                    await dp.bot.updateData
-                    
-                    await  dp.bot.groupTransfer(group,column='result_test', id=msg.from_user.id)
-   
-                elif group == '2':
-                    await msg.answer('Добро пожаловать!')
-                    await  dp.bot.groupTransfer(group=group, id=msg.from_user.id)
-                    
-    
-  
-
-        await msg.answer('Не понимаю, что это значит.')
+        
+        # for key, item in comm.commands.items():
+        #     print(item)
+        #     for comd in item:
+        #         if commandUser==comd: #проверка на существование команды
+        #             result = dp.bot.db.matchUser(group=key, id=msg.from_user.id)
+        #             if result:
+        #                 print(f'{comd[1:]}_Command(msg, {key})')
+        #                 await dp.bot.comd[1:]+'_Command'(msg, msg.from_user.id, key)
+        # if result==False:
+        #     msg.answer('У вас недостаточно прав или команда введена некорректно')   
 
 
 def main():
