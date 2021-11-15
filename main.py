@@ -11,8 +11,6 @@ from matplotlib import pyplot as plt, use
 import random
 from credentials import *
 from keyboards import btnMessage
-import re
-import comands as comm
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
@@ -20,6 +18,7 @@ btnMessage = btnMessage()
 
 db_data = {"user": db_user, "password": db_password, "database": db_name, "host": db_host}
 
+################# КОМАНДЫ ###############################ммм#
 
 @dp.message_handler(commands=['help'])
 async def send_help(msg: types.Message):
@@ -30,10 +29,12 @@ async def send_help(msg: types.Message):
     if groupUser == '0':
         await msg.answer("""
         Полный список команд:
-        /change_group - сменить группу
+        /change_group [group]- сменить группу
         /broadcast [msg] - разослать всем пользователям сообщение
         /out_subscr - посмотреть свои подписки
+        /subscribe - подписаться на рассыл0чки
         /chande_subscr - сменить подписку
+        /leave - покинуть группу
         """)
 
     elif groupUser=='1' or groupUser=='2':
@@ -43,7 +44,7 @@ async def send_help(msg: types.Message):
         /broadcast [msg] - разослать всем пользователям из своей группы сообщение
         /subscribe - подписаться на рассыл0чки
         /users - посмотреть всех пользователей в моей группе
-        /unsubscribe - отписаться от рассыл0чки
+        /unsubscribe [msg]- отписаться от рассыл0чки
         /rules - правила бойцовского клуба
         /leave - покинуть группу
         """)
@@ -53,7 +54,7 @@ async def send_help(msg: types.Message):
         Полный список команд:
         /start - активировать чат-бота
         /broadcast [msg] - разослать всем пользователям сообщение
-        /entance - вход
+        /entance [pswd]- вход
         """)
 
 @dp.message_handler(commands=['start'])
@@ -62,34 +63,65 @@ async def send_welcome(msg: types.Message):
     res = await dp.bot.db.get_user(msg.from_user.id)
     if len(res) == 0:
         await dp.bot.db.add_user(msg["from"])
-        await msg.reply("Добро пожаловать в наш бойцовский клуб! Меня зовут Тостер. Я ваш персональный помощник в дальнейшем. Чтобы узнать о том, что я умею, введите команду /help", reply_markup=btnMessage.inline_kb_subscr)
+        await msg.reply("Добро пожаловать в наш бойцовский клуб! Меня зовут Тостер. Я ваш персональный помощник в дальнейшем. Чтобы узнать о том, что я умею, введите команду /help", reply_markup=btnMessage.inline_kb_offer_subscr)
+        picture = open('img/toster.jpeg', 'rb')
+
+        await bot.send_photo(chat_id=msg.from_user.id, photo=picture)
     else:
         await msg.answer('Приветствую снова, боец')
 
 
-@dp.callback_query_handler(text='subscr_newslet')
-async def subscriptionProcess(callback_query: types.CallbackQuery):
-    await bot.send_message(callback_query.from_user.id, 'Выберите подписку на которую вы хотите подписаться:')
-
 @dp.message_handler(commands=['rules'])
 async def send_welcome(msg: types.Message):
     
-    await msg.send_message(msg.from_user.id, r"Первое правило Бойцовского клуба: никому не рассказывать о Бойцовском клубе. \n Второе правило Бойцовского клуба: никогда никому не рассказывать о Бойцовском клубе. \n Третье правило Бойцовского клуба: в схватке участвует только один из команды. Если он не справляется, другие приходят на помощь \n Четвертое правило Бойцовского клуба: оформляй понятные тикеты. \n Пятое правило Бойцовского клуба: бойцы сражаются на тестовом домене.  \n  Седьмое: бой продолжается до тех пор, пока не будут исправлены все баги.  \n  Восьмое и последнее: если вы первый раз в бойцовском клубе, прежде чем вступить в бой, вы должны быть подготовлены к нему и к непонятным ТЗ")
+    await msg.answer(f"Первое правило Бойцовского клуба: никому не рассказывать о Бойцовском клубе. \n Второе правило Бойцовского клуба: никогда никому не рассказывать о Бойцовском клубе. \n Третье правило Бойцовского клуба: в схватке участвует только один из команды. Если он не справляется, другие приходят на помощь \n Четвертое правило Бойцовского клуба: оформляй понятные тикеты. \n Пятое правило Бойцовского клуба: бойцы сражаются на тестовом домене.  \n  Седьмое: бой продолжается до тех пор, пока не будут исправлены все баги.  \n  Восьмое и последнее: если вы первый раз в бойцовском клубе, прежде чем вступить в бой, вы должны быть подготовлены к нему и к непонятным ТЗ")
 
-@dp.message_handler(commands=['entance'])
+# Войти в группу пользователя
+@dp.message_handler(commands=['enstance'])
 async def send_welcome(msg: types.Message):
-    await msg.answer('Чтобы продолжить, пожалуйста, введите пароль:')
+    groupUser = await dp.bot.matchUser('3', msg.from_user.id)
+    if groupUser:
+        text = msg.text.split()
+        if len(text)>1:
+            pswd = await dp.bot.db.get_attrForColummn(columns='pswd', table='groups')
+            pswd = [rec["pswd"] for rec in pswd]
+
+            if pswd.count(text[1]): #если в списке есть пароль
+                group = await dp.bot.db.get_attrForColummn(columns='gid', table='groups', param=f"pswd='{text[1]}'")
+                group = group[0]["gid"]
+                if group == '0':
+                    picture = open('img/maxresdefault.jpg', 'rb')
+
+                    await msg.answer('Добро пожаловать, господин администратор!')
+
+                    await bot.send_photo(chat_id=msg.from_user.id, photo=picture)
+                    await dp.bot.groupTransfer(group=group, column='debug', id=msg.from_user.id)
+
+                elif group == '1':
+                    await msg.answer('Добро пожаловать в ряды тетировщиков! Вам автоматически подключена подписка на рассылку по результатам тестов')
+                    await dp.bot.groupTransfer(group=group,column='result_test', id=msg.from_user.id)
+
+                elif group == '2':
+                    await msg.answer('Добро пожаловать!')
+                    await dp.bot.groupTransfer(group=group, id=msg.from_user.id)
+            else: 
+                await msg.answer('Неверный пароль')
+    else:
+        await msg.answer('Вы уже вошли')
+
+# Покинуть группу пользователя. Все, кроме 3
+@dp.message_handler(commands=['leave'])
+async def send_welcome(msg: types.Message):
+    groupUser = await dp.bot.matchUser(['0', '1','2'], msg.from_user.id)
+    if groupUser:
+        await dp.bot.db.updateData(column='group_id', table='users', param='3', where='id', id=msg.from_user.id)
+        await msg.answer('Вы покинули команду')
+    else:
+        await msg.answer('Вы не можете воспользоваться данной командой')
 
 @dp.message_handler(commands=['change_group'])
 async def send_welcome(msg: types.Message):
-    await msg.answer('Внимание! Вы пытаетесь сменить группу поользователей! Выберите в какую группу вы хотите перейти:')
-
-
-async def getNotes(conn, url, From, To):
-    print(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
-    res = await conn.fetch(
-        f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
-    return res
+    await msg.answer('Внимание! Вы пытаетесь сменить группу пользователей! Выберите в какую группу вы хотите перейти:')
 
 
 @dp.message_handler(commands=['test'])
@@ -142,35 +174,43 @@ async def send_broadcast(msg: types.Message):
         await dp.bot.broadcaster(msg=text, id_sender=msg.from_user.id)
 
 
+################# ТЕКСТ ###############################ммм#
+
 @dp.message_handler(content_types=['text'])
 async def get_text_messages(msg: types.Message):
-    result = False
-    # groupUser = dp.bot.db.matchUser()
-    is_comm=re.search(r'^/', msg.text) #проверка на / перед словом
-    if is_comm is None:
-        if msg.text.lower() == 'привет':
-            await msg.answer('Привет!')
-        else:
-            await msg.answer('Не понимаю, что это значит.')
-    else:
-        groupUser = await dp.bot.db.get_attrForColummn(column = 'group_id', table='users', param=f'uid={id}')
-        gid = groupUser[0]['group_id']
-        from comands import arrCom as coms
-        commandUser=re.search(r'/\w+', msg.text)  #выборка первого слова
-        # if commandUser in coms[gid]:
-            
 
-        
-        # for key, item in comm.commands.items():
-        #     print(item)
-        #     for comd in item:
-        #         if commandUser==comd: #проверка на существование команды
-        #             result = dp.bot.db.matchUser(group=key, id=msg.from_user.id)
-        #             if result:
-        #                 print(f'{comd[1:]}_Command(msg, {key})')
-        #                 await dp.bot.comd[1:]+'_Command'(msg, msg.from_user.id, key)
-        # if result==False:
-        #     msg.answer('У вас недостаточно прав или команда введена некорректно')   
+    if msg.text.lower() == 'привет':
+        await msg.answer('Привет!')
+    else:
+        await msg.answer('Не понимаю, что это значит.')
+
+################# КНОПОНЬКИ ###############################ммм#
+
+# Вывод кнопок для подписки
+@dp.callback_query_handler(text='subscr_newslet')
+async def subscriptionProcess(callback_query: types.CallbackQuery):
+    await bot.send_message(callback_query.from_user.id, 'Выберите подписку на которую вы хотите подписаться:', reply_markup=btnMessage.inline_kb_subscr)
+    await bot.send_message(callback_query.from_user.id, 'С помощью подписки на тесты можно увидеть результаты тестов. Подписка "Все" позволит выводить другие дополнительные сообщения')
+
+# Подписка на группу тестеров
+@dp.callback_query_handler(text='subscr_tester')
+async def subscriptionToTester(callback_query: types.CallbackQuery):
+    await dp.bot.db.updateData(column='group_id', table='users', param='1', where='id', id=callback_query.from_user.id)
+    await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на тесты')
+
+# Подписка на группу All
+@dp.callback_query_handler(text='subscr_all_users')
+async def subscriptionToAllUsers(callback_query: types.CallbackQuery):
+    await dp.bot.db.updateData(column='group_id', table='users', param='2', where='id', id=callback_query.from_user.id)
+    await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на все дополнительные оповещения')
+
+################# КАКАЯ ТО ХЕРНЯ ###############################ммм#
+
+async def getNotes(conn, url, From, To):
+    print(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
+    res = await conn.fetch(
+        f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
+    return res
 
 
 def main():
