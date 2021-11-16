@@ -2,8 +2,8 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import exceptions, executor
 import json
-
 import logging
+import io
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('broadcast')
@@ -73,7 +73,33 @@ class TelegramBot(Bot):
         except Exception as e:
             raise e
 
+    # Для изменения данных в таблицах subscribes и users
+    async def groupTransfer(self, group, id, column=None):
+        if column is not None:
+            await self.db.updateData(column=column, table='subscribes', where='uid', param=1, id=id)
+        
+        await self.db.updateData(column='group_id', table='users', param=group, where='id', id=id)
 
+
+    async def matchUser(self, group, uid, back_group=False):
+        groupUser = await self.db.get_attrForColummn(columns = 'group_id', table='users', param=f'id={uid}')
+        groupUser=groupUser[0]['group_id']
+        res = False
+        if len(group)>1:
+            for item in group:
+                if groupUser == item:
+                    res = True
+        else:
+            if groupUser == group[0]:
+                res = True
+        if back_group:
+            return [res, groupUser]
+        else:
+             return res
+
+ 
+#################################### SERVER ################################################
+   
     async def serve_client(self, reader, writer):
         global counter
         counter += 1  # Потоко-безопасно, так все выполняется в одном потоке
@@ -90,6 +116,8 @@ class TelegramBot(Bot):
         request = bytearray()
         while True:
             chunk = await reader.read(2 ** 10)
+            # stream = io.BytesIO(screen)
+            # img = Image.open(stream)
             if not chunk:
                 # Клиент преждевременно отключился.
                 break
@@ -103,25 +131,6 @@ class TelegramBot(Bot):
             #     return request[:-2]
         return None
 
-    async def matchUser(self, group, id):
-        groupUser = await self.db.get_attrForColummn(columns = 'group_id', table='users', param=f'id={id}')
-        groupUser=groupUser[0]['group_id']
-        res = False
-        if len(group)>1:
-            for item in group:
-                if groupUser == item:
-                    res = True
-        else:
-            if groupUser == group[0]:
-                res = True
-        return res
-
-    # Для изменения данных в таблицах subscribes и users
-    async def groupTransfer(self, group, id, column=None):
-        if column==None:
-            await self.db.updateData(column=column, table='subscribes', where='uid', param=1, id=id)
-        
-        await self.db.updateData(column='group_id', table='users', param=group, where='id', id=id)
 
     async def write_response(self, writer, response):
         try:
