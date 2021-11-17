@@ -51,11 +51,11 @@ class TelegramBot(Bot):
         :return: Count of messages
         """
         if id_sender is not None:
-            # group = await self.db.get_attrForColummn(columns='group_id', table='users', param='id='+str(id_sender))
+            # group = await self.db.get_attrForColumn(columns='group_id', table='users', param='id='+str(id_sender))
             # group = group[0]["group_id"]
             
-            users_id = await self.db.get_attrForColummn(columns='id', table='users')
-            # users_id = await self.db.get_attrForColummn(columns='id', table='users', param="group_id='"+group+"'")
+            users_id = await self.db.get_attrForColumn(columns='id', table='users')
+            # users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id='"+group+"'")
             users_id = [rec["id"] for rec in users_id]
         else:
             if debug is None or debug==0:
@@ -80,9 +80,8 @@ class TelegramBot(Bot):
         
         await self.db.updateData(column='group_id', table='users', param=group, where='id', id=id)
 
-
     async def matchUser(self, group, uid, back_group=False):
-        groupUser = await self.db.get_attrForColummn(columns = 'group_id', table='users', param=f'id={uid}')
+        groupUser = await self.db.get_attrForColumn(columns = 'group_id', table='users', param=f'id={uid}')
         groupUser=groupUser[0]['group_id']
         res = False
         if len(group)>1:

@@ -68,11 +68,11 @@ class DataBase:
 
 
     @db_connection(**cred)
-    async def get_attrForColummn(sels, columns: str, table: str, connection, param=None):
+    async def get_attrForColumn(sels, columns: str, table: str, connection, param=None):
         if param is None:
             return await connection.fetch(f"Select {columns} from {table}")
         else:
-            print(f"Select {columns} from {table} where {param}")
+            # print(f"Select {columns} from {table} where {param}")
             return await connection.fetch(f"Select {columns} from {table} where {param}")
 
     @db_connection(**cred)

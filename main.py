@@ -22,19 +22,18 @@ db_data = {"user": db_user, "password": db_password, "database": db_name, "host"
 
 @dp.message_handler(commands=['help'])
 async def send_help(msg: types.Message):
-    groupUser = await dp.bot.db.get_attrForColummn(columns='group_id',table='users', param=f'id={msg.from_user.id}')
+    groupUser = await dp.bot.db.get_attrForColumn(columns='group_id',table='users', param=f'id={msg.from_user.id}')
     groupUser = groupUser[0]["group_id"]
-    print(groupUser)
 
     if groupUser == '0':
         await msg.answer("""
         Полный список команд:
-        /change_group [group]- сменить группу
+        /change_group - сменить группу
         /broadcast [msg] - разослать всем пользователям сообщение
         /out_subscr - посмотреть свои подписки
         /subscribe - подписаться на рассыл0чки
-        /chande_subscr - сменить подписку
         /leave - покинуть группу
+        /unsubscribe - отписаться от рассыл0чки
         """)
 
     elif groupUser=='1' or groupUser=='2':
@@ -43,8 +42,9 @@ async def send_help(msg: types.Message):
         /start - активировать чат-бота
         /broadcast [msg] - разослать всем пользователям из своей группы сообщение
         /subscribe - подписаться на рассыл0чки
+        /out_subscr - посмотреть свои подписки
         /users - посмотреть всех пользователей в моей группе
-        /unsubscribe [msg]- отписаться от рассыл0чки
+        /unsubscribe - отписаться от рассыл0чки
         /rules - правила бойцовского клуба
         /leave - покинуть группу
         """)
@@ -82,12 +82,12 @@ async def group_entry(msg: types.Message):
     groupUser = await dp.bot.matchUser('3', msg.from_user.id)
     if groupUser:
         text = msg.text.split()
-        if len(text)>1:
-            pswd = await dp.bot.db.get_attrForColummn(columns='pswd', table='groups')
+        if len(text)!=1:
+            pswd = await dp.bot.db.get_attrForColumn(columns='pswd', table='groups')
             pswd = [rec["pswd"] for rec in pswd]
 
             if pswd.count(text[1]): #если в списке есть пароль
-                group = await dp.bot.db.get_attrForColummn(columns='gid', table='groups', param=f"pswd='{text[1]}'")
+                group = await dp.bot.db.get_attrForColumn(columns='gid', table='groups', param=f"pswd='{text[1]}'")
                 group = group[0]["gid"]
                 if group == '0':
                     picture = open('img/maxresdefault.jpg', 'rb')
@@ -106,14 +106,18 @@ async def group_entry(msg: types.Message):
                     await dp.bot.groupTransfer(group=group, id=msg.from_user.id)
             else: 
                 await msg.answer('Неверный пароль')
+        else:
+            await msg.answer('Введите пароль. Например, "/enstance 123"')
     else:
         await msg.answer('Вы уже вошли')
 
 # Покинуть группу пользователя. Все, кроме 3
 @dp.message_handler(commands=['leave'])
 async def leave_group(msg: types.Message):
-    groupUser = await dp.bot.matchUser(['0', '1','2'], msg.from_user.id)
-    if groupUser:
+    groupUser = await dp.bot.matchUser(['0', '1','2'], msg.from_user.id, back_group=True)
+    if groupUser[0]:
+        if groupUser[1]=='0':
+            await dp.bot.db.updateData(column='debug', table='subscribes', param='0', where='uid', id=msg.from_user.id)
         await dp.bot.db.updateData(column='group_id', table='users', param='3', where='id', id=msg.from_user.id)
         await msg.answer('Вы покинули команду')
     else:
@@ -121,8 +125,11 @@ async def leave_group(msg: types.Message):
 
 @dp.message_handler(commands=['change_group'])
 async def change_group(msg: types.Message):
-    await msg.answer('Внимание! Вы пытаетесь сменить группу пользователей! Выберите в какую группу вы хотите перейти:')
-
+    groupUser = await dp.bot.matchUser('0', msg.from_user.id)
+    if groupUser:
+        await bot.send_message(msg.from_user.id, 'Внимание! Вы пытаетесь сменить группу пользователей! Выберите в какую группу вы хотите перейти:', reply_markup=btnMessage.inline_kb_changing_user)
+    else:
+        await msg.answer('Недостаточно прав')
 
 @dp.message_handler(commands=['test'])
 async def __test__(msg: types.Message):
@@ -168,7 +175,7 @@ async def send_broadcast(msg: types.Message):
     last_name = msg["from"]["last_name"]
     ind = text.find(' ')
     if ind == -1:
-        await msg.answer("все херня")
+        await msg.answer("Пожалуйста, введите текст сообщения. Например '/broadcast Всем привет!'")
     else:
         text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[ind+1:]}</b>"""
         await dp.bot.broadcaster(msg=text, id_sender=msg.from_user.id)
@@ -178,11 +185,11 @@ async def send_broadcast(msg: types.Message):
 async def subscribe_user(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1','2'], msg.from_user.id, back_group=True)
     arr = []    ########################### ВНИМАНИЕ КОСТЫЛЬ
-    if groupUser[1]:
-        subs = await dp.bot.db.get_attrForColummn(columns = 'debug, from_users, result_tests', table='subscribes', param=f'uid={msg.from_user.id}')
+    if groupUser[0]:
+        subs = await dp.bot.db.get_attrForColumn(columns = 'debug, from_users, result_tests', table='subscribes', param=f'uid={msg.from_user.id}')
         subs = [dict(row) for row in subs] 
         if groupUser[1]=='0' and subs[0]['debug']==False:
-            arr.append('from_users')
+            arr.append('debug')
         else:
             if subs[0]['from_users']==False:
                 arr.append('from_users')
@@ -191,7 +198,69 @@ async def subscribe_user(msg: types.Message):
         if len(arr)==0:
             await msg.answer('Вы уже подписаны на все предоставляемые нами подписки. Если хотите отписаться, введите команду /unsubscribe')
         else:
-            await bot.send_message(msg.from_user.id, 'Выберите подписку на которую вы хотите подписаться:', reply_markup=await btnMessage.addKeybord(arr))
+            await bot.send_message(msg.from_user.id, 'Выберите подписку на которую вы хотите подписаться:', reply_markup=await btnMessage.addKeybrd(arr, "sub"))
+    else:
+        await msg.answer('Недостаточно прав')
+
+
+@dp.message_handler(commands=['out_subscr'])
+async def out_subscribe_for_user(msg: types.Message):
+    groupUser = await dp.bot.matchUser(['0', '1','2'], msg.from_user.id, back_group=True)
+    subscribes = ''
+    if groupUser[0]:
+        subs = await dp.bot.db.get_attrForColumn(columns = 'debug, from_users, result_tests', table='subscribes', param=f'uid={msg.from_user.id}')
+        if groupUser[1]=='0' and subs[0]['debug']:
+            subscribes = '"Дебаг"'
+            if subs[0]['from_users']:
+                subscribes = subscribes +'"Все"'
+            if subs[0]['result_tests']:
+                subscribes = subscribes +'"Тесты"'
+        else:
+            if subs[0]['from_users']:
+                subscribes = subscribes +'"Все"'
+            if subs[0]['result_tests']:
+                subscribes = subscribes +'"Тесты"'
+        
+        await msg.answer(f'Вы подписаны на следующие рассылки: {subscribes}. Чтобы отписаться от какой-нибудь рассылки, введите команду /unsubscribe')        
+    else:
+        await msg.answer('Недостаточно прав')
+
+@dp.message_handler(commands=['users'])
+async def out_subscribe_for_user(msg: types.Message):
+    groupUser = await dp.bot.matchUser(['0', '1','2'], msg.from_user.id, back_group=True)
+    users = ''
+    if groupUser[0]:
+        usrName = await dp.bot.db.get_attrForColumn(columns='first_name', table='users', param=f"group_id='{groupUser[1]}' and id!='{msg.from_user.id}'")
+        usrName = [rec["first_name"] for rec in usrName]
+        for user in usrName:
+            users = users + user + '\n' # <- делаем строку
+        await msg.answer(f'Пользователи в вашей группе: {users}')        
+    else:
+        await msg.answer('Недостаточно прав')
+
+
+@dp.message_handler(commands=['unsubscribe'])
+async def unsubscribe(msg: types.Message):
+    groupUser = await dp.bot.matchUser(['0', '1','2'], msg.from_user.id, back_group=True)
+    arr = []    ########################### ВНИМАНИЕ КОСТЫЛЬ
+    if groupUser[0]:
+        subs = await dp.bot.db.get_attrForColumn(columns = 'debug, from_users, result_tests', table='subscribes', param=f'uid={msg.from_user.id}')
+        subs = [dict(row) for row in subs] 
+        if groupUser[1]=='0' and subs[0]['debug']:
+            arr.append('debug')
+            if subs[0]['from_users']:
+                    arr.append('from_users')
+            if subs[0]['result_tests']:
+                    arr.append('result_tests')
+        else:
+            if subs[0]['from_users']:
+                arr.append('from_users')
+            if subs[0]['result_tests']:
+                arr.append('result_tests')
+        if len(arr)==0:
+            await msg.anwer('У вас нет активных подписок. Чтобы подписаться на рассылки, введите команду /subscribe')
+        else:
+            await bot.send_message(msg.from_user.id, 'Выберите рассылку от которой хотите отписаться', reply_markup=await btnMessage.addKeybrd(arr, "unsub"))
     else:
         await msg.answer('Недостаточно прав')
 
@@ -206,30 +275,74 @@ async def get_text_messages(msg: types.Message):
 
 ################# КНОПОНЬКИ ################################
 
-# Подписка на группу тестеров
+# Подписка на тесты
 @dp.callback_query_handler(text='subscr_test')
 async def subscription_tester(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)     
     await dp.bot.db.updateData(column='result_tests', table='subscribes', param='1', where='uid', id=callback_query.from_user.id)
     await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на тесты')
 
-# Подписка на группу All
+# Подписка на рассылку All
 @dp.callback_query_handler(text='subscr_all_users')
 async def subscription_all_users(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id) 
     await dp.bot.db.updateData(column='from_users', table='subscribes', param='1', where='uid', id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на все дополнительные оповещения')
+    await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на общая рассылку')
 
-# Подписка на группу All
+
+# Подписка на debug 
 @dp.callback_query_handler(text='subscr_debug')
 async def subscription_all_users(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id) 
     await dp.bot.db.updateData(column='debug', table='subscribes', param='1', where='uid', id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на все дополнительные оповещения')
+    await bot.send_message(callback_query.from_user.id, 'Вам оформлена общая рассылка')
+
+
+# Отписаться от debug 
+@dp.callback_query_handler(text='unsubscr_debug')
+async def subscription_all_users(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id) 
+    await dp.bot.db.updateData(column='debug', table='subscribes', param='0', where='uid', id=callback_query.from_user.id)
+    await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки дебага')
+
+
+#  Отписаться от рассылки результатов тестов
+@dp.callback_query_handler(text='unsubscr_test')
+async def subscription_tester(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)     
+    await dp.bot.db.updateData(column='result_tests', table='subscribes', param='0', where='uid', id=callback_query.from_user.id)
+    await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки по результатам тестов')
+
+# Отписаться от рассылки All
+@dp.callback_query_handler(text='unsubscr_all_users')
+async def subscription_all_users(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id) 
+    await dp.bot.db.updateData(column='from_users', table='subscribes', param='0', where='uid', id=callback_query.from_user.id)
+    await bot.send_message(callback_query.from_user.id, 'Вы отписались от общей рассылки')
+
+# Подписка на группу тестеров
+@dp.callback_query_handler(text='user_tester')
+async def subscription_tester(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id) 
+    await dp.bot.db.updateData(column='debug', param='0', table='subscribes', where='uid', id=callback_query.from_user.id)
+    await dp.bot.db.updateData(column='group_id', table='users', param='1', where='id', id=callback_query.from_user.id)
+    await bot.send_message(callback_query.from_user.id, 'Вы перешли в группу тестеров')
+
+# Подписка на группу All
+@dp.callback_query_handler(text='users_all')
+async def subscription_all_users(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id) 
+    await dp.bot.db.updateData(column='debug', param='0', table='subscribes', where='uid', id=callback_query.from_user.id)
+    await dp.bot.db.updateData(column='group_id', table='users', param='2', where='id', id=callback_query.from_user.id)
+    await bot.send_message(callback_query.from_user.id, 'Вы перешли в общую группу')
+
 
 
 
 ################# КАКАЯ ТО ХЕРНЯ #################################
 
 async def getNotes(conn, url, From, To):
-    print(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
+    # print(f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
     res = await conn.fetch(
         f"select * from timings,urls where datetime between '{From}' and '{To}' and urls.url='{url}';")
     return res
