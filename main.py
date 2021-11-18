@@ -33,6 +33,7 @@ async def send_help(msg: types.Message):
         /out_subscr - посмотреть свои подписки
         /subscribe - подписаться на рассыл0чки
         /leave - покинуть группу
+        /help - вывод справки
         /unsubscribe - отписаться от рассыл0чки
         """)
 
@@ -45,6 +46,7 @@ async def send_help(msg: types.Message):
         /out_subscr - посмотреть свои подписки
         /users - посмотреть всех пользователей в моей группе
         /unsubscribe - отписаться от рассыл0чки
+        /help - вывод справки
         /rules - правила бойцовского клуба
         /leave - покинуть группу
         """)
@@ -53,7 +55,7 @@ async def send_help(msg: types.Message):
         await msg.answer("""
         Полный список команд:
         /start - активировать чат-бота
-        /broadcast [msg] - разослать всем пользователям сообщение
+        /help - вывод справки
         /enstance [pswd]- вход
         """)
 
@@ -64,6 +66,7 @@ async def send_welcome(msg: types.Message):
     if len(res) == 0:
         await dp.bot.db.add_user(msg["from"])
         await msg.reply("Добро пожаловать в наш бойцовский клуб! Меня зовут Тостер. Я ваш персональный помощник в дальнейшем. Чтобы узнать о том, что я умею, введите команду /help")
+        
         picture = open('img/toster.jpeg', 'rb')
 
         await bot.send_photo(chat_id=msg.from_user.id, photo=picture)
@@ -170,15 +173,19 @@ async def __test__(msg: types.Message):
 
 @dp.message_handler(commands=['broadcast'])
 async def send_broadcast(msg: types.Message):
-    text = msg["text"]
-    first_name = msg["from"]["first_name"]
-    last_name = msg["from"]["last_name"]
-    ind = text.find(' ')
-    if ind == -1:
-        await msg.answer("Пожалуйста, введите текст сообщения. Например '/broadcast Всем привет!'")
+    groupUser = await dp.bot.matchUser(['0','1','2'], msg.from_user.id, back_group=True)
+    if groupUser[0]:
+        text = msg["text"]
+        first_name = msg["from"]["first_name"]
+        last_name = msg["from"]["last_name"]
+        ind = text.find(' ')
+        if ind == -1:
+            await msg.answer("Пожалуйста, введите текст сообщения. Например '/broadcast Всем привет!'")
+        else:
+            text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[ind+1:]}</b>"""
+            await dp.bot.broadcaster(msg=text, id_sender=msg.from_user.id)
     else:
-        text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[ind+1:]}</b>"""
-        await dp.bot.broadcaster(msg=text, id_sender=msg.from_user.id)
+        await msg.answer('')
 
 
 @dp.message_handler(commands=['subscribe'])

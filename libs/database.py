@@ -55,8 +55,8 @@ class DataBase:
             Values({data["id"]},{data["is_bot"]},'{data["first_name"]}', '{data["last_name"]}', '3', '{data["language_code"]}')"""
         )
         await connection.fetch(
-            f"""INSERT into subscribes (uid) 
-            Values({data["id"]})"""
+            f"""INSERT into subscribes (uid, debug, from_users, result_tests) 
+            Values({data["id"]}, '0', '0', '0')"""
         )
 
     @db_connection(**cred)

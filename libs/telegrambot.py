@@ -4,6 +4,7 @@ from aiogram.utils import exceptions, executor
 import json
 import logging
 import io
+from libs.protocol import Protocol
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('broadcast')
@@ -44,7 +45,7 @@ class TelegramBot(Bot):
         return False
  
     #перебор id пользователей
-    async def broadcaster(self, msg, debug=None, id_sender=None) -> int:
+    async def broadcaster(self, msg, debug=None, id_sender=None, img=None) -> int:
         """
         Simple broadcaster
 
@@ -58,18 +59,27 @@ class TelegramBot(Bot):
             # users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id='"+group+"'")
             users_id = [rec["id"] for rec in users_id]
         else:
-            if debug is None or debug==0:
+            if debug==0:
+                print('*****************0')
                 users_id = await self.db.fetch("SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where result_tests='1';")
                 users_id = [rec["id"] for rec in users_id]
             elif debug==1:
+                print('*****************1')
                 users_id = await self.db.fetch(f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
                 users_id = [rec["id"] for rec in users_id]
+
         try:
+            print(users_id)
             for id in users_id:
+                print(id)
                 if await self._send_message(str(id), f'{msg}'):
                     # обнулить подписку пользователя
                     pass
                 await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
+       
+                if img is not None:
+                    await self.send_photo(chat_id=id, photo=img)
+                    await asyncio.sleep(.05)
         except Exception as e:
             raise e
 
@@ -105,38 +115,35 @@ class TelegramBot(Bot):
         print(f'Client connected')
 
         request = await self.read_request(reader)
+        print(request['text'])
+        request['text'] = json.loads(request['text'].decode().replace("'", "\""))
         if request is None:
             print(f'Client  unexpectedly disconnected')
         else:
             await self.write_response(writer, request)
-            print(request)
 
     async def read_request(self, reader):
-        request = bytearray()
-        while True:
+        protocol = Protocol()
+        while not protocol.STOP_READING:
             chunk = await reader.read(2 ** 10)
-            # stream = io.BytesIO(screen)
-            # img = Image.open(stream)
             if not chunk:
                 # Клиент преждевременно отключился.
                 break
-            request += chunk
-            try:
-                data = json.loads(request.decode("utf-8").replace("'", "\""))
-                return data
-            except:
-                pass
-            # if delimiter in request:
-            #     return request[:-2]
-        return None
+            protocol.setChunk(chunk)
+        print("out of func")
+        return protocol.data
 
 
     async def write_response(self, writer, response):
-        try:
-            await self.broadcaster(msg=response['text'], debug=response['debug'])
-            writer.write(b"{'status':'OK'}")
-        except:
-            writer.write(b"{'status':'ERROR'}")
+        # print(response)
+        await self.broadcaster(msg=response['text']['text'], debug=response['text']['debug'], img=response['image'])
+        writer.write(b"{'status':'OK'}")
+        # try:
+        #     await self.broadcaster(msg=response['text']['text'], debug=response['text']['debug'], img=response['image'])
+        #     writer.write(b"{'status':'OK'}")
+        # except Exception as e:
+        #     msg = {'status':'ERROR', 'error': e}
+        #     writer.write(str(msg).encode())
         await writer.drain()
         writer.close()
         print(f'Client  has been served')
