@@ -135,15 +135,9 @@ class TelegramBot(Bot):
 
 
     async def write_response(self, writer, response):
-        # print(response)
         await self.broadcaster(msg=response['text']['text'], debug=response['text']['debug'], img=response['image'])
         writer.write(b"{'status':'OK'}")
-        # try:
-        #     await self.broadcaster(msg=response['text']['text'], debug=response['text']['debug'], img=response['image'])
-        #     writer.write(b"{'status':'OK'}")
-        # except Exception as e:
-        #     msg = {'status':'ERROR', 'error': e}
-        #     writer.write(str(msg).encode())
+
         await writer.drain()
         writer.close()
         print(f'Client  has been served')
