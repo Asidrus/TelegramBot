@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt, use
 import random
 from credentials import *
 from keyboards import btnMessage
+from libs.network import Server
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
@@ -102,7 +103,7 @@ async def group_entry(msg: types.Message):
 
                 elif group == '1':
                     await msg.answer('Добро пожаловать в ряды тетировщиков! Вам автоматически подключена подписка на рассылку по результатам тестов')
-                    await dp.bot.groupTransfer(group=group,column='result_test', id=msg.from_user.id)
+                    await dp.bot.groupTransfer(group=group,column='result_tests', id=msg.from_user.id)
 
                 elif group == '2':
                     await msg.answer('Добро пожаловать!')
@@ -183,9 +184,9 @@ async def send_broadcast(msg: types.Message):
             await msg.answer("Пожалуйста, введите текст сообщения. Например '/broadcast Всем привет!'")
         else:
             text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[ind+1:]}</b>"""
-            await dp.bot.broadcaster(msg=text, id_sender=msg.from_user.id)
+            await dp.bot.broadcaster(content=text, id_sender=msg.from_user.id)
     else:
-        await msg.answer('')
+        await msg.answer('Я не понимаю')
 
 
 @dp.message_handler(commands=['subscribe'])
@@ -359,8 +360,10 @@ async def getNotes(conn, url, From, To):
 
 def main():
     bot.db = DataBase()
+    server = Server(socket_ip, socket_port, handler=bot.broadcaster)
+
     loop = asyncio.new_event_loop()
-    loop.create_task(bot.run_server(socket_ip, socket_port))
+    loop.create_task(server.runSever())
     # loop.create_task(bot.db.run_db())
     asyncio.set_event_loop(loop)
     ex = executor.Executor(dp, loop=loop)
