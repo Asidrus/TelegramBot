@@ -50,7 +50,7 @@ class TelegramBot(Bot):
         """
         count = 0
         try:
-            for user_id in await self.db.get_all_id():
+            for user_id in await self.db.conn.fetch(f"Select id from users"):
                 if await self._send_message(user_id["id"], f'{msg}'):
                     count += 1
                 await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
