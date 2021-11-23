@@ -59,7 +59,7 @@ class TelegramBot(Bot):
             users_id = [rec["id"] for rec in users_id]
         else:
             if debug==0:
-                users_id = await self.db.fetch("SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where result_tests='1';")
+                users_id = await self.db.fetch("SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where result_tests='true';")
                 users_id = [rec["id"] for rec in users_id]
             elif debug==1:
                 users_id = await self.db.fetch(f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")

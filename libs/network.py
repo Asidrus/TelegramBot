@@ -108,7 +108,6 @@ class Server:
 
     async def serveClient(self, reader, writer):
         request = await readMessage(reader)
-        print(request)
         if request is None:
             print(f'Client unexpectedly disconnected')
         else:
@@ -143,7 +142,6 @@ class Client:
                 raise Exception(f'Couldn`t connect to {self.ip}:{self.port}')
             await writeMessage(writer, **kwargs)
             data = await readMessage(reader)
-            print(data)
             if self.handler is None:
                 writer.close()
                 return data
@@ -161,7 +159,6 @@ class Client:
 
 async def writeMessage(writer, **kwargs):
     protocol = Protocol()
-    print(kwargs)
     writer.write(protocol.setData(**kwargs))
 
 
@@ -176,7 +173,6 @@ async def readMessage(reader) -> dict:
 
 
 async def handlerIn(**kwargs):
-    print(kwargs)
     if kwargs['debug'] == 1:
         return {"contentType": "json", "content": {"text": "ok"}}
     else: 
@@ -184,7 +180,6 @@ async def handlerIn(**kwargs):
 
 
 async def handlerOut(**kwargs):
-    print(kwargs['text'].decode())
     if kwargs['text'].decode() == 'test':
         return {'text': 'ok'}
     else:
@@ -192,7 +187,6 @@ async def handlerOut(**kwargs):
 
 
 if __name__ == "__main__":
-    print(sys.argv[1])
     if sys.argv[1] == '1':
         print('start server')
         server = Server(handler=handlerIn)
