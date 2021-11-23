@@ -1,9 +1,9 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import exceptions, executor
-
-
+import json
 import logging
+import io
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('broadcast')
@@ -14,10 +14,10 @@ counter = 0
 class TelegramBot(Bot):
     db = None
 
+    # для отправки сообщения 1 пользователю
     async def _send_message(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
         """
         Safe messages sender
-
         :param user_id:
         :param text:
         :param disable_notification:
@@ -42,55 +42,61 @@ class TelegramBot(Bot):
             return True
         return False
 
-    async def broadcaster(self, msg) -> int:
+    # перебор id пользователей
+    async def broadcaster(self, contentType='text', content='', debug=0, id_sender=None, image=None) -> int:
         """
         Simple broadcaster
-
         :return: Count of messages
         """
-        count = 0
-        try:
-            for user_id in await self.db.conn.fetch(f"Select id from users"):
-                if await self._send_message(user_id["id"], f'{msg}'):
-                    count += 1
-                await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
-        finally:
-            log.info(f"{count} messages successful sent.")
-        return count
+        if id_sender is not None:
+            # group = await self.db.get_attrForColumn(columns='group_id', table='users', param='id='+str(id_sender))
+            # group = group[0]["group_id"]
 
-    async def serve_client(self, reader, writer):
-        global counter
-        cid = counter
-        counter += 1  # Потоко-безопасно, так все выполняется в одном потоке
-        print(f'Client #{cid} connected')
-
-        request = await self.read_request(reader)
-        if request is None:
-            print(f'Client #{cid} unexpectedly disconnected')
+            users_id = await self.db.get_attrForColumn(columns='id', table='users')
+            # users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id='"+group+"'")
+            users_id = [rec["id"] for rec in users_id]
         else:
-            await self.write_response(writer, request, cid)
+            if debug == 0:
+                users_id = await self.db.fetch(
+                    "SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where result_tests='true';")
+                users_id = [rec["id"] for rec in users_id]
+            elif debug == 1:
+                users_id = await self.db.fetch(
+                    f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
+                users_id = [rec["id"] for rec in users_id]
 
-    async def read_request(self, reader, delimiter=b'#END'):
-        request = bytearray()
-        while True:
-            chunk = await reader.read(2 ** 10)
-            if not chunk:
-                # Клиент преждевременно отключился.
-                break
-            request += chunk
-            if delimiter in request:
-                return request[:-4]
-        return None
+        try:
+            for id in users_id:
+                if await self._send_message(str(id), f'{content}'):
+                    # обнулить подписку пользователя
+                    pass
+                await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
 
-    async def write_response(self, writer, response, cid):
-        await self.broadcaster(response.decode())
-        writer.write(response)
-        await writer.drain()
-        writer.close()
-        print(f'Client #{cid} has been served')
+                if image is not None and len(image) != 0:
+                    await self.send_photo(chat_id=id, photo=image)
+                    await asyncio.sleep(.05)
+        except Exception as e:
+            raise e
 
-    async def run_server(self, host, port):
-        server = await asyncio.start_server(self.serve_client, host, port)
-        await server.serve_forever()
+    # Для изменения данных в таблицах subscribes и users
+    async def groupTransfer(self, group, id, column=None):
+        if column is not None:
+            await self.db.updateData(column=column, table='subscribes', where='uid', param=1, id=id)
 
+        await self.db.updateData(column='group_id', table='users', param=group, where='id', id=id)
 
+    async def matchUser(self, group, uid, back_group=False):
+        groupUser = await self.db.get_attrForColumn(columns='group_id', table='users', param=f'id={uid}')
+        groupUser = groupUser[0]['group_id']
+        res = False
+        if len(group) > 1:
+            for item in group:
+                if groupUser == item:
+                    res = True
+        else:
+            if groupUser == group[0]:
+                res = True
+        if back_group:
+            return [res, groupUser]
+        else:
+            return res
