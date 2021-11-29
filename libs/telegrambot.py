@@ -4,6 +4,8 @@ from aiogram.utils import exceptions, executor
 import json
 import logging
 import io
+import uuid
+import hashlib
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('broadcast')
@@ -100,3 +102,8 @@ class TelegramBot(Bot):
             return [res, groupUser]
         else:
             return res
+
+    async def check_password(self, hashed_password, user_password):
+        password, salt = hashed_password.split(':')
+        return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
+ 

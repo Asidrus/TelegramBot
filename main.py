@@ -12,6 +12,7 @@ import random
 from credentials import *
 from keyboards import btnMessage
 from libs.network import Server
+import re
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
@@ -87,14 +88,18 @@ async def msg_rules(msg: types.Message):
 @dp.message_handler(commands=['enstance'])
 async def group_entry(msg: types.Message):
     groupUser = await dp.bot.matchUser('3', msg.from_user.id)
+    res = False
     if groupUser:
         text = msg.text.split()
         if len(text) != 1:
-            pswd = await dp.bot.db.get_attrForColumn(columns='pswd', table='groups')
-            pswd = [rec["pswd"] for rec in pswd]
-
-            if pswd.count(text[1]):  # если в списке есть пароль
-                group = await dp.bot.db.get_attrForColumn(columns='gid', table='groups', param=f"pswd='{text[1]}'")
+            pswd = await dp.bot.db.get_attrForColumn(columns='pswd', table='groups', param="pswd!='None'")
+            for rec in pswd:          
+                res = await dp.bot.check_password(rec["pswd"], text[1])
+                if res:
+                    pswd = rec["pswd"]
+                    break
+            if res:  # если в списке есть пароль
+                group = await dp.bot.db.get_attrForColumn(columns='gid', table='groups', param=f"pswd='{pswd}'")
                 group = group[0]["gid"]
                 if group == '0':
                     picture = open('img/maxresdefault.jpg', 'rb')
