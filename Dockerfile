@@ -1,10 +1,11 @@
 FROM continuumio/miniconda3
-WORKDIR /home/tester/telegrambot
-EXPOSE $PORT
-RUN mkdir -m 777 /temp
+ARG path=/app
+ARG PROJECT='project'
+ARG STORAGE='/storage/'
+WORKDIR $path/$PROJECT
+RUN mkdir -m 777 $STORAGE
 COPY req.yml ./
 RUN conda env create -f req.yml
-RUN echo "source activate telegrambot" > ~/.bashrc
-ENV PATH /opt/conda/envs/telegrambot/bin:$PATH
+RUN echo "source activate $PROJECT" > ~/.bashrc
+ENV PATH /opt/conda/envs/$PROJECT/bin:$PATH
 COPY . .
-

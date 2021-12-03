@@ -1,24 +1,44 @@
+import os
+import re
+import random
 from datetime import datetime
-
+import asyncio
 import asyncpg
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 from keyboards import btnMessage
 from libs.telegrambot import TelegramBot
 from libs.database import DataBase
-import asyncio
-from matplotlib import pyplot as plt, use
-import random
-from credentials import *
-from keyboards import btnMessage
 from libs.network import Server
-import re
+
+from matplotlib import pyplot as plt, use
+
+""" Read env """
+from dotenv import load_dotenv
+load_dotenv()
+
+PROJECT_NAME = os.getenv('PROJECT')
+STORAGE_PATH = os.getenv('STORAGE')
+IP = os.getenv('IP')
+PORT = os.getenv('PORT')
+DB_NAME = os.getenv('DB_NAME')
+DB_HOST = os.getenv('DB_HOST')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+API_TOKEN = os.getenv('API_TOKEN')
+
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
 btnMessage = btnMessage()
 
-db_data = {"user": db_user, "password": db_password, "database": db_name, "host": db_host}
+cred = {"user": DB_USER,
+        "password": DB_PASSWORD,
+        "database": DB_NAME,
+        "host": DB_HOST}
+
+print(cred)
+
 
 
 ################# КОМАНДЫ ################################
@@ -395,11 +415,9 @@ async def getNotes(conn, url, From, To):
 
 def main():
     bot.db = DataBase()
-    server = Server(socket_ip, socket_port, handler=bot.broadcaster)
-
+    server = Server(IP, PORT, handler=bot.broadcaster)
     loop = asyncio.new_event_loop()
     loop.create_task(server.runSever())
-    # loop.create_task(bot.db.run_db())
     asyncio.set_event_loop(loop)
     ex = executor.Executor(dp, loop=loop)
     ex.start_polling()

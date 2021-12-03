@@ -1,26 +1,20 @@
 import asyncpg
-from credentials import *
+import os
 
-cred = {"user": db_user, "password": db_password, "database": db_name, "host": db_host}
+from dotenv import load_dotenv
+load_dotenv()
 
+DB_NAME = os.getenv('DB_NAME')
+DB_HOST = os.getenv('DB_HOST')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
 
-# def db_connection(**kwargs):
-#     """
-#     @db_connection(user="...", password="...", database="...", host="...")
-#     getData(connection):
-#         await = connection.fetch("SELECT * FROM ...")
-#     """
+cred = {"user": DB_USER,
+        "password": DB_PASSWORD,
+        "database": DB_NAME,
+        "host": DB_HOST}
 
-#     def _wrapper(func):
-#         async def wrapper(*args):
-#             connection = await asyncpg.connect(**kwargs)
-#             result = await func(*args, connection=connection)
-#             await connection.close()
-#             return result
-
-#         return wrapper
-
-#     return _wrapper
+print(cred)
 
 
 def db_connection(**kwargs):
