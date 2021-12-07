@@ -46,6 +46,11 @@ class TelegramBot(Bot):
 
     # перебор id пользователей
     async def broadcaster(self, contentType='text', content='', debug=0, id_sender=None, image=None) -> int:
+        text = content["msg"]
+        if 'rt_penta' in content.keys():
+            penta = content['rt_penta']
+        elif 'rt_MD' in content.keys():
+            Mult = content['rt_penta']
         """
         Simple broadcaster
         :return: Count of messages
@@ -107,3 +112,49 @@ class TelegramBot(Bot):
         password, salt = hashed_password.split(':')
         return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
  
+    async def subscriptionAnalysis(self, userId):
+        subscr = await self.db.get_attrForColumn(columns='res_all_tests, rt_penta, rt_psy, rt_mult', table='subscribes', param=f'uid={userId}')
+        subscr = [dict(row) for row in subscr]
+        if subscr[0]['rt_penta']==False and subscr[0]['rt_psy']==False and subscr[0]['rt_mult']==False:
+            return False
+        else:
+            return True
+    
+    async def checkingSubscriptions(self, group, id, purpose=None):
+        subscrname = []  
+        subscribes = ''
+        subs = await self.db.get_attrForColumn(columns='*', table='subscribes',
+                                                 param=f'uid={id}')
+        subs = [dict(row) for row in subs]
+        print(subs)
+        if purpose is None:
+            if group == '0':
+                if not subs[0]['debug']:
+                    subscrname.append('debug')
+            
+            if not subs[0]['from_users']:
+                subscrname.append('from_users')
+            if not subs[0]['res_all_tests']:
+                subscrname.append('res_all_tests')
+            if not subs[0]['rt_penta'] :
+                subscrname.append('rt_penta')
+            if not subs[0]['rt_psy']:
+                subscrname.append('rt_psy')
+            if not subs[0]['rt_mult']:
+                subscrname.append('rt_mult')
+            return subscrname
+        else:
+            if group == '0':
+                if subs[0]['debug']:
+                    subscribes = ' "Дебаг" '
+            if subs[0]['from_users']:
+                subscribes = subscribes + ' "Общие" '
+            if subs[0]['res_all_tests']:
+                subscribes = subscribes + ' "Все тесты" '
+            if subs[0]['rt_penta']:
+                subscribes = subscribes + ' "УЦ - "Pentaschool" " '   
+            if subs[0]['rt_psy']:
+                subscribes = subscribes + ' УЦ - "PSY" '
+            if subs[0]['rt_mult']:
+                subscribes = subscribes + ' УЦ - "Мультидвижок" '
+            return subscribes

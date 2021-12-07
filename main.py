@@ -3,16 +3,16 @@ from datetime import datetime
 import asyncpg
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
-from keyboards import btnMessage
 from libs.telegrambot import TelegramBot
 from libs.database import DataBase
 import asyncio
 from matplotlib import pyplot as plt, use
 import random
 from credentials import *
-from keyboards import btnMessage
+from libs.keyboards import btnMessage
 from libs.network import Server
 import re
+from aiogram.dispatcher.filters import Text
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
@@ -82,6 +82,9 @@ async def send_welcome(msg: types.Message):
 async def msg_rules(msg: types.Message):
     await msg.answer(
         f"Первое правило Бойцовского клуба: никому не рассказывать о Бойцовском клубе. \n Второе правило Бойцовского клуба: никогда никому не рассказывать о Бойцовском клубе. \n Третье правило Бойцовского клуба: в схватке участвует только один из команды. Если он не справляется, другие приходят на помощь \n Четвертое правило Бойцовского клуба: оформляй понятные тикеты. \n Пятое правило Бойцовского клуба: бойцы сражаются на тестовом домене.  \n  Седьмое: бой продолжается до тех пор, пока не будут исправлены все баги.  \n  Восьмое и последнее: если вы первый раз в бойцовском клубе, прежде чем вступить в бой, вы должны быть подготовлены к нему и к непонятным ТЗ")
+    await bot.send_message(msg.from_user.id,
+                               'Выберите УЦ, на который вы хотите подписаться',
+                               reply_markup=btnMessage.inline_kb)
 
 
 # Войти в группу пользователя
@@ -90,6 +93,7 @@ async def group_entry(msg: types.Message):
     groupUser = await dp.bot.matchUser('3', msg.from_user.id)
     res = False
     if groupUser:
+        subs = await dp.bot.subscriptionAnalysis(msg.from_user.id)
         text = msg.text.split()
         if len(text) != 1:
             pswd = await dp.bot.db.get_attrForColumn(columns='pswd', table='groups', param="pswd!='None'")
@@ -112,11 +116,17 @@ async def group_entry(msg: types.Message):
                 elif group == '1':
                     await msg.answer(
                         'Добро пожаловать в ряды тетировщиков! Вам автоматически подключена подписка на рассылку по результатам тестов')
-                    await dp.bot.groupTransfer(group=group, column='result_tests', id=msg.from_user.id)
-
+                    await dp.bot.groupTransfer(group=group, column='res_all_tests', id=msg.from_user.id)
+                    if not subs:
+                        await bot.send_message(msg.from_user.id,
+                               'Выберите УЦ, на который вы хотите подписаться',
+                               reply_markup=btnMessage.inline_kb_uc_subscription)
                 elif group == '2':
                     await msg.answer('Добро пожаловать!')
                     await dp.bot.groupTransfer(group=group, id=msg.from_user.id)
+                    if not subs:
+                        await bot.send_message(msg.from_user.id, 'Выберите УЦ, на который вы хотите подписаться',
+                               reply_markup=btnMessage.inline_kb_uc_subscription)
             else:
                 await msg.answer('Неверный пароль')
         else:
@@ -206,24 +216,14 @@ async def send_broadcast(msg: types.Message):
 @dp.message_handler(commands=['subscribe'])
 async def subscribe_user(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
-    arr = []  ########################### ВНИМАНИЕ КОСТЫЛЬ
     if groupUser[0]:
-        subs = await dp.bot.db.get_attrForColumn(columns='debug, from_users, result_tests', table='subscribes',
-                                                 param=f'uid={msg.from_user.id}')
-        subs = [dict(row) for row in subs]
-        if groupUser[1] == '0' and subs[0]['debug'] == False:
-            arr.append('debug')
-        else:
-            if subs[0]['from_users'] == False:
-                arr.append('from_users')
-            if subs[0]['result_tests'] == False:
-                arr.append('result_tests')
-        if len(arr) == 0:
+        subs = await dp.bot.checkingSubscriptions(groupUser[1], msg.from_user.id)
+        if len(subs) == 0:
             await msg.answer(
                 'Вы уже подписаны на все предоставляемые нами подписки. Если хотите отписаться, введите команду /unsubscribe')
         else:
             await bot.send_message(msg.from_user.id, 'Выберите подписку на которую вы хотите подписаться:',
-                                   reply_markup=await btnMessage.addKeybrd(arr, "sub"))
+                                   reply_markup=await btnMessage.addKeybrd(subs, "sub"))
     else:
         await msg.answer('Недостаточно прав')
 
@@ -231,24 +231,13 @@ async def subscribe_user(msg: types.Message):
 @dp.message_handler(commands=['out_subscr'])
 async def out_subscribe_for_user(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
-    subscribes = ''
     if groupUser[0]:
-        subs = await dp.bot.db.get_attrForColumn(columns='debug, from_users, result_tests', table='subscribes',
-                                                 param=f'uid={msg.from_user.id}')
-        if groupUser[1] == '0' and subs[0]['debug']:
-            subscribes = '"Дебаг"'
-            if subs[0]['from_users']:
-                subscribes = subscribes + '"Все"'
-            if subs[0]['result_tests']:
-                subscribes = subscribes + '"Тесты"'
+        subscribes = await dp.bot.checkingSubscriptions(groupUser[1], msg.from_user.id, purpose='out_subscr')
+        if len(subscribes)==0:
+            await msg.answer('У вас нет активных подписок. Чтобы подписаться на рассылку введите команду /subscribe')
         else:
-            if subs[0]['from_users']:
-                subscribes = subscribes + '"Все"'
-            if subs[0]['result_tests']:
-                subscribes = subscribes + '"Тесты"'
-
-        await msg.answer(
-            f'Вы подписаны на следующие рассылки: {subscribes}. Чтобы отписаться от какой-нибудь рассылки, введите команду /unsubscribe')
+            await msg.answer(
+                f'Вы подписаны на следующие рассылки: {subscribes}. Чтобы отписаться от какой-нибудь рассылки, введите команду /unsubscribe')
     else:
         await msg.answer('Недостаточно прав')
 
@@ -271,27 +260,13 @@ async def out_subscribe_for_user(msg: types.Message):
 @dp.message_handler(commands=['unsubscribe'])
 async def unsubscribe(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
-    arr = []  ########################### ВНИМАНИЕ КОСТЫЛЬ
     if groupUser[0]:
-        subs = await dp.bot.db.get_attrForColumn(columns='debug, from_users, result_tests', table='subscribes',
-                                                 param=f'uid={msg.from_user.id}')
-        subs = [dict(row) for row in subs]
-        if groupUser[1] == '0' and subs[0]['debug']:
-            arr.append('debug')
-            if subs[0]['from_users']:
-                arr.append('from_users')
-            if subs[0]['result_tests']:
-                arr.append('result_tests')
-        else:
-            if subs[0]['from_users']:
-                arr.append('from_users')
-            if subs[0]['result_tests']:
-                arr.append('result_tests')
-        if len(arr) == 0:
+        subs = await dp.bot.checkingSubscriptions(groupUser[1], msg.from_user.id)
+        if len(subs) == 0:
             await msg.anwer('У вас нет активных подписок. Чтобы подписаться на рассылки, введите команду /subscribe')
         else:
             await bot.send_message(msg.from_user.id, 'Выберите рассылку от которой хотите отписаться',
-                                   reply_markup=await btnMessage.addKeybrd(arr, "unsub"))
+                                   reply_markup=await btnMessage.addKeybrd(subs, "unsub"))
     else:
         await msg.answer('Недостаточно прав')
 
@@ -308,79 +283,137 @@ async def get_text_messages(msg: types.Message):
 
 ################# КНОПОНЬКИ ################################
 
-# Подписка на тесты
-@dp.callback_query_handler(text='subscr_test')
-async def subscription_tester(callback_query: types.CallbackQuery):
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await dp.bot.db.updateData(column='result_tests', table='subscribes', param='1', where='uid',
-                               id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на тесты')
+# Подписка на все тесты
+# @dp.callback_query_handler(text='subscr_all_test')
+# async def subscription_tester(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='res_all_tests', table='subscribes', param='1', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на тесты')
 
 
-# Подписка на рассылку All
-@dp.callback_query_handler(text='subscr_all_users')
-async def subscription_all_users(callback_query: types.CallbackQuery):
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await dp.bot.db.updateData(column='from_users', table='subscribes', param='1', where='uid',
-                               id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на общая рассылку')
+# # Подписка на рассылку All
+# @dp.callback_query_handler(text='subscr_all_users')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='from_users', table='subscribes', param='1', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на общую рассылку')
 
 
-# Подписка на debug
-@dp.callback_query_handler(text='subscr_debug')
-async def subscription_all_users(callback_query: types.CallbackQuery):
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await dp.bot.db.updateData(column='debug', table='subscribes', param='1', where='uid',
-                               id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вам оформлена общая рассылка')
+# # Подписка на penta
+# @dp.callback_query_handler(text='subscr_penta')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='rt_penta', table='subscribes', param='1', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на pentaschool')
+
+# # Подписка на psy
+# @dp.callback_query_handler(text='subscr_psy')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='rt_psy', table='subscribes', param='1', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на PSY')
+
+# # Подписка на psy
+# @dp.callback_query_handler(text='subscr_mult')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='rt_mult', table='subscribes', param='1', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на мультидвижок')
+
+# # Подписка на debug
+# @dp.callback_query_handler(text='subscr_debug')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='debug', table='subscribes', param='1', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вам оформлена подписка на дебаг')
 
 
-# Отписаться от debug
-@dp.callback_query_handler(text='unsubscr_debug')
-async def subscription_all_users(callback_query: types.CallbackQuery):
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await dp.bot.db.updateData(column='debug', table='subscribes', param='0', where='uid',
-                               id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки дебага')
+# # Отписаться от debug
+# @dp.callback_query_handler(text='unsubscr_debug')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='debug', table='subscribes', param='0', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки дебага')
+
+# # Отписаться от penta
+# @dp.callback_query_handler(text='unsubscr_penta')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='rt_penta', table='subscribes', param='0', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки тестов pentaschool')
+
+# # Отписаться от psy
+# @dp.callback_query_handler(text='unsubscr_psy')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='rt_psy', table='subscribes', param='0', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки тестов по psy')
+
+# # Отписаться от mult
+# @dp.callback_query_handler(text='unsubscr_mult')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='rt_mult', table='subscribes', param='0', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки тестов по mult')
+
+# #  Отписаться от рассылки результатов тестов
+# @dp.callback_query_handler(text='unsubscr_all_test')
+# async def subscription_tester(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='res_all_tests', table='subscribes', param='0', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки по результатам всех тестов')
 
 
-#  Отписаться от рассылки результатов тестов
-@dp.callback_query_handler(text='unsubscr_test')
-async def subscription_tester(callback_query: types.CallbackQuery):
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await dp.bot.db.updateData(column='result_tests', table='subscribes', param='0', where='uid',
-                               id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вы отписались от рассылки по результатам тестов')
+# # Отписаться от рассылки All
+# @dp.callback_query_handler(text='unsubscr_all_users')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='from_users', table='subscribes', param='0', where='uid',
+#                                id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вы отписались от общей рассылки')
 
 
-# Отписаться от рассылки All
-@dp.callback_query_handler(text='unsubscr_all_users')
-async def subscription_all_users(callback_query: types.CallbackQuery):
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await dp.bot.db.updateData(column='from_users', table='subscribes', param='0', where='uid',
-                               id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вы отписались от общей рассылки')
+# # Подписка на группу тестеров
+# @dp.callback_query_handler(text='user_tester')
+# async def subscription_tester(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='debug', param='0', table='subscribes', where='uid',
+#                                id=callback_query.from_user.id)
+#     await dp.bot.db.updateData(column='group_id', table='users', param='1', where='id', id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вы перешли в группу тестеров')
 
 
-# Подписка на группу тестеров
-@dp.callback_query_handler(text='user_tester')
-async def subscription_tester(callback_query: types.CallbackQuery):
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await dp.bot.db.updateData(column='debug', param='0', table='subscribes', where='uid',
-                               id=callback_query.from_user.id)
-    await dp.bot.db.updateData(column='group_id', table='users', param='1', where='id', id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вы перешли в группу тестеров')
+# # Подписка на группу All
+# @dp.callback_query_handler(text='users_all')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+#     await dp.bot.db.updateData(column='debug', param='0', table='subscribes', where='uid',
+#                                id=callback_query.from_user.id)
+#     await dp.bot.db.updateData(column='group_id', table='users', param='2', where='id', id=callback_query.from_user.id)
+#     await bot.send_message(callback_query.from_user.id, 'Вы перешли в общую группу')
 
 
-# Подписка на группу All
-@dp.callback_query_handler(text='users_all')
-async def subscription_all_users(callback_query: types.CallbackQuery):
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    await dp.bot.db.updateData(column='debug', param='0', table='subscribes', where='uid',
-                               id=callback_query.from_user.id)
-    await dp.bot.db.updateData(column='group_id', table='users', param='2', where='id', id=callback_query.from_user.id)
-    await bot.send_message(callback_query.from_user.id, 'Вы перешли в общую группу')
+# @dp.callback_query_handler(text='dont_want')
+# async def subscription_all_users(callback_query: types.CallbackQuery):
+#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
 
+
+@dp.callback_query_handler(Text(startswith="subs_"))
+async def callbacks_num(call: types.CallbackQuery):
+    user_value = call.from_user.id
+    action = call.data[5:]
+    print(user_value, action)
 
 ################# КАКАЯ ТО ХЕРНЯ #################################
 

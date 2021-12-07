@@ -72,7 +72,7 @@ class DataBase:
         if param is None:
             return await connection.fetch(f"Select {columns} from {table}")
         else:
-            # print(f"Select {columns} from {table} where {param}")
+            print(f"Select {columns} from {table} where {param}")
             return await connection.fetch(f"Select {columns} from {table} where {param}")
 
     @db_connection(**cred)
