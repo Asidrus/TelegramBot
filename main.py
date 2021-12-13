@@ -93,7 +93,7 @@ async def group_entry(msg: types.Message):
     groupUser = await dp.bot.matchUser('3', msg.from_user.id)
     res = False
     if groupUser:
-        subs = await dp.bot.subscriptionAnalysis(msg.from_user.id)
+        subs = await dp.bot.checkingSubscriptions(msg.from_user.id, purpose='УЦ')
         text = msg.text.split()
         if len(text) != 1:
             pswd = await dp.bot.db.get_attrForColumn(columns='pswd', table='groups', param="pswd!='None'")
@@ -217,13 +217,13 @@ async def send_broadcast(msg: types.Message):
 async def subscribe_user(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     if groupUser[0]:
-        subs = await dp.bot.checkingSubscriptions(groupUser[1], msg.from_user.id)
-        if len(subs) == 0:
+        subs_kwrd = await btnMessage.addKeybrd(await dp.bot.checkingSubscriptions(msg.from_user.id, group=groupUser[1], purpose='subs'))
+        if subs_kwrd[1] == 0:
             await msg.answer(
                 'Вы уже подписаны на все предоставляемые нами подписки. Если хотите отписаться, введите команду /unsubscribe')
         else:
             await bot.send_message(msg.from_user.id, 'Выберите подписку на которую вы хотите подписаться:',
-                                   reply_markup=await btnMessage.addKeybrd(subs, "sub"))
+                                   reply_markup=subs_kwrd[0])
     else:
         await msg.answer('Недостаточно прав')
 
@@ -232,7 +232,7 @@ async def subscribe_user(msg: types.Message):
 async def out_subscribe_for_user(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     if groupUser[0]:
-        subscribes = await dp.bot.checkingSubscriptions(groupUser[1], msg.from_user.id, purpose='out_subscr')
+        subscribes = await dp.bot.checkingSubscriptions(msg.from_user.id, group=groupUser[1], purpose='my_subs')
         if len(subscribes)==0:
             await msg.answer('У вас нет активных подписок. Чтобы подписаться на рассылку введите команду /subscribe')
         else:
@@ -261,12 +261,12 @@ async def out_subscribe_for_user(msg: types.Message):
 async def unsubscribe(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     if groupUser[0]:
-        subs = await dp.bot.checkingSubscriptions(groupUser[1], msg.from_user.id)
-        if len(subs) == 0:
-            await msg.anwer('У вас нет активных подписок. Чтобы подписаться на рассылки, введите команду /subscribe')
+        subs_kwd = await btnMessage.addKeybrd(await dp.bot.checkingSubscriptions(msg.from_user.id, group=groupUser[1], purpose='subs'), "_") 
+        if subs_kwd[1] == 0:
+            await msg.answer('У вас нет активных подписок. Чтобы подписаться на рассылки, введите команду /subscribe')
         else:
             await bot.send_message(msg.from_user.id, 'Выберите рассылку от которой хотите отписаться',
-                                   reply_markup=await btnMessage.addKeybrd(subs, "unsub"))
+                                   reply_markup=subs_kwd[0])
     else:
         await msg.answer('Недостаточно прав')
 
@@ -404,16 +404,15 @@ async def get_text_messages(msg: types.Message):
 #     await bot.send_message(callback_query.from_user.id, 'Вы перешли в общую группу')
 
 
-# @dp.callback_query_handler(text='dont_want')
-# async def subscription_all_users(callback_query: types.CallbackQuery):
-#     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+@dp.callback_query_handler(text='dont_want')
+async def subscription_all_users(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
 
 
 @dp.callback_query_handler(Text(startswith="subs_"))
 async def callbacks_num(call: types.CallbackQuery):
-    user_value = call.from_user.id
-    action = call.data[5:]
-    print(user_value, action)
+    await bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
+    res = await dp.bot.workSubscribes(call.from_user.id, call.data[5:])
 
 ################# КАКАЯ ТО ХЕРНЯ #################################
 

@@ -13,8 +13,10 @@ log = logging.getLogger('broadcast')
 counter = 0
 
 
+
 class TelegramBot(Bot):
     db = None
+    subscribes = {'Общие': 'from_users', 'Все тесты': 'res_all_tests', 'Pentaschool': 'rt_penta', 'PSY': 'rt_psy', 'Мультидвижок': 'rt_mult', 'debug': 'debug'}
 
     # для отправки сообщения 1 пользователю
     async def _send_message(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
@@ -111,50 +113,38 @@ class TelegramBot(Bot):
     async def check_password(self, hashed_password, user_password):
         password, salt = hashed_password.split(':')
         return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
- 
-    async def subscriptionAnalysis(self, userId):
-        subscr = await self.db.get_attrForColumn(columns='res_all_tests, rt_penta, rt_psy, rt_mult', table='subscribes', param=f'uid={userId}')
-        subscr = [dict(row) for row in subscr]
-        if subscr[0]['rt_penta']==False and subscr[0]['rt_psy']==False and subscr[0]['rt_mult']==False:
-            return False
-        else:
-            return True
-    
-    async def checkingSubscriptions(self, group, id, purpose=None):
-        subscrname = []  
+
+    async def checkingSubscriptions(self, id, group=None, purpose=None):
         subscribes = ''
-        subs = await self.db.get_attrForColumn(columns='*', table='subscribes',
+        subs = await self.db.get_attrForColumn(columns='debug, from_users as "Общие", res_all_tests as "Все тесты", rt_penta as "Pentaschool", rt_psy as "PSY", rt_mult as "Мультидвижок"', table='subscribes',
                                                  param=f'uid={id}')
         subs = [dict(row) for row in subs]
-        print(subs)
-        if purpose is None:
-            if group == '0':
-                if not subs[0]['debug']:
-                    subscrname.append('debug')
-            
-            if not subs[0]['from_users']:
-                subscrname.append('from_users')
-            if not subs[0]['res_all_tests']:
-                subscrname.append('res_all_tests')
-            if not subs[0]['rt_penta'] :
-                subscrname.append('rt_penta')
-            if not subs[0]['rt_psy']:
-                subscrname.append('rt_psy')
-            if not subs[0]['rt_mult']:
-                subscrname.append('rt_mult')
-            return subscrname
-        else:
+        if purpose=='subs':
+            if group=='0':
+                del subs[0]['debug']
+            return subs[0]
+        elif purpose=='my_subs':
             if group == '0':
                 if subs[0]['debug']:
                     subscribes = ' "Дебаг" '
-            if subs[0]['from_users']:
-                subscribes = subscribes + ' "Общие" '
-            if subs[0]['res_all_tests']:
-                subscribes = subscribes + ' "Все тесты" '
-            if subs[0]['rt_penta']:
-                subscribes = subscribes + ' "УЦ - "Pentaschool" " '   
-            if subs[0]['rt_psy']:
-                subscribes = subscribes + ' УЦ - "PSY" '
-            if subs[0]['rt_mult']:
-                subscribes = subscribes + ' УЦ - "Мультидвижок" '
+            for key in subs[0].keys():
+                 subscribes = subscribes + f' "{key}" '
             return subscribes
+        elif purpose=='УЦ':
+            if subs[0]['Pentaschool']==False and subs[0]['PSY']==False and subs[0]['Мультидвижок']==False:
+                return False
+            else:
+                return True
+    
+async def workSubscribes(self, uid, act):
+    try:
+        if '_' in act:
+            act.rstrip('_')
+            await self.db.updateData(columns=f'{self.subscribes[act]}', table = 'subscribes', param=f'uid={id}')
+        else:
+            await self.db.updateData(columns=f'{self.subscribes[act]}', table = 'subscribes', param=f'uid={id}')
+
+        return True
+    except Exception as e:
+        print(e)
+        return False
