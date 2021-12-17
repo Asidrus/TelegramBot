@@ -47,23 +47,30 @@ class TelegramBot(Bot):
         return False
 
     # перебор id пользователей
-    async def broadcaster(self, contentType='text', content='', debug=0, id_sender=None, image=None) -> int:
-        text = content["msg"]
-        if 'rt_penta' in content.keys():
-            penta = content['rt_penta']
-        elif 'rt_MD' in content.keys():
-            Mult = content['rt_penta']
+    async def broadcaster(self, contentType='text', content='', debug=0, id_sender=None, image=None, msg=None) -> int:
+        # text = content["msg"]
+        # if 'rt_penta' in content.keys():
+        #     penta = content['rt_penta']
+        # elif 'rt_MD' in content.keys():
+        #     Mult = content['rt_penta']
         """
         Simple broadcaster
         :return: Count of messages
         """
-        if id_sender is not None:
-            # group = await self.db.get_attrForColumn(columns='group_id', table='users', param='id='+str(id_sender))
-            # group = group[0]["group_id"]
+       
+        text = msg['text']
+        flag = text[5:int(msg['text'].find(" "))]
 
-            users_id = await self.db.get_attrForColumn(columns='id', table='users')
-            # users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id='"+group+"'")
-            users_id = [rec["id"] for rec in users_id]
+        if id_sender is not None:
+
+            if flag =='all':
+                users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id!='0'")
+
+                users_id = [rec["id"] for rec in users_id]
+            else:
+                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{flag}='true' OR uid='{msg.from_user.id}'")
+
+                users_id = [rec["uid"] for rec in users_id]
         else:
             if debug == 0:
                 users_id = await self.db.fetch(
@@ -136,15 +143,14 @@ class TelegramBot(Bot):
             else:
                 return True
     
-async def workSubscribes(self, uid, act):
-    try:
-        if '_' in act:
-            act.rstrip('_')
-            await self.db.updateData(columns=f'{self.subscribes[act]}', table = 'subscribes', param=f'uid={id}')
-        else:
-            await self.db.updateData(columns=f'{self.subscribes[act]}', table = 'subscribes', param=f'uid={id}')
+    async def workSubscribes(self, uid, act, flag=None):
+        try:
+            if flag is None:
+                await self.db.updateData(column=f'{self.subscribes[act]}', param='1', table = 'subscribes', where='uid', id=uid)
+            else:
+                await self.db.updateData(column=f'{self.subscribes[act]}', param='0', table = 'subscribes', where='uid', id=uid)
 
-        return True
-    except Exception as e:
-        print(e)
-        return False
+            return True
+        except Exception as e:
+            print(e)
+            return False
