@@ -76,6 +76,7 @@ class Protocol:
         contentType = int.from_bytes(self.data['contentType'], 'big')
         if contentType == 0:
             self.data['contentType'] = 'json'
+            print(self.data['content'])
             self.data['content'] = json.loads(self.data['content'].decode('utf-8').replace("'", "\""))
         elif contentType == 1:
             self.data['contentType'] = 'text'
@@ -114,6 +115,7 @@ class Server:
             if self.handler is None:
                 pass
             else:
+                print(request)
                 response = await self.handler(**request)
                 if response is not None:
                     await writeMessage(writer, **response)

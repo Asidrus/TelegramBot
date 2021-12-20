@@ -47,8 +47,14 @@ class TelegramBot(Bot):
         return False
 
     # перебор id пользователей
-    async def broadcaster(self, contentType='text', content='', debug=0, id_sender=None, image=None, msg=None) -> int:
-        # text = content["msg"]
+    async def broadcaster(self, contentType='text', content=None, debug=0, id_sender=None, image=None, flag=None, id_media=None) -> int:
+        print(content)
+        if contentType == 'text':
+            pass
+        elif contentType == 'json':
+            if (content is not None) and (content['flag'] is not None):
+                flag = content['flag']
+            content = content['msg']
         # if 'rt_penta' in content.keys():
         #     penta = content['rt_penta']
         # elif 'rt_MD' in content.keys():
@@ -58,28 +64,28 @@ class TelegramBot(Bot):
         :return: Count of messages
         """
        
-        text = msg['text']
-        flag = text[5:int(msg['text'].find(" "))]
 
-        if id_sender is not None:
+        if flag == 'all':
+            users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id!='0'")
 
-            if flag =='all':
-                users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id!='0'")
+            users_id = [rec["id"] for rec in users_id]
 
-                users_id = [rec["id"] for rec in users_id]
-            else:
-                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{flag}='true' OR uid='{msg.from_user.id}'")
-
-                users_id = [rec["uid"] for rec in users_id]
         else:
-            if debug == 0:
-                users_id = await self.db.fetch(
+            if id_sender is not None:
+                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{flag}='true' OR uid='{id_sender}'")
+            else:
+                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{flag}='true'")
+                
+            users_id = [rec["uid"] for rec in users_id]
+
+        if debug == 0:
+            users_id = await self.db.fetch(
                     "SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where result_tests='true';")
-                users_id = [rec["id"] for rec in users_id]
-            elif debug == 1:
-                users_id = await self.db.fetch(
+            users_id = [rec["id"] for rec in users_id]
+        elif debug == 1:
+            users_id = await self.db.fetch(
                     f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
-                users_id = [rec["id"] for rec in users_id]
+            users_id = [rec["id"] for rec in users_id]
 
         try:
             for id in users_id:
@@ -91,8 +97,30 @@ class TelegramBot(Bot):
                 if image is not None and len(image) != 0:
                     await self.send_photo(chat_id=id, photo=image)
                     await asyncio.sleep(.05)
+
+                if  id_media is not None:
+                    if 'video' in id_media.keys():
+                        await self.send_animation(chat_id=id, animation=id_media['video'])
+                        await asyncio.sleep(.05)
+                    elif 'photo' in id_media.keys():
+                        await self.send_photo(chat_id=id, photo=id_media['photo'])
+                        await asyncio.sleep(.05)
+
         except Exception as e:
             raise e
+
+    async def checkingCommand(self, command):
+        ind = int(command.find(" ")) 
+        if ind!=-1:
+            command = command[5:ind] 
+        else:
+            command = command[5:]
+
+        if command == 'penta' or command == 'psy' or command == 'mult' or command == 'all':
+            return [True, command]
+        else:
+            return [False, command]
+
 
     # Для изменения данных в таблицах subscribes и users
     async def groupTransfer(self, group, id, column=None):

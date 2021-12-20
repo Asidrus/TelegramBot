@@ -207,16 +207,23 @@ async def __test__(msg: types.Message):
 async def send_broadcast(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     if groupUser[0]:
-        print(msg)
-        # text = msg["text"]
-        # first_name = msg["from"]["first_name"]
-        # last_name = msg["from"]["last_name"]
-        # ind = text.find(' ')
-        # if ind == -1:
-        #     await msg.answer("Пожалуйста, введите текст сообщения. Например '/msg_all Всем привет!'")
-        # else:
-        #     text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[ind + 1:]}</b>"""
-        #     await dp.bot.broadcaster(content=text, id_sender=msg.from_user.id, msg=msg)
+        text = msg["text"]
+        first_name = msg["from"]["first_name"]
+        last_name = msg["from"]["last_name"]
+        ind = text.find(' ')
+
+        if ind == -1:
+            await msg.answer("Пожалуйста, введите текст сообщения. Например '/msg_all Всем привет!'")
+        else:
+            res = await dp.bot.checkingCommand(msg['text'])
+            if res[0]:
+
+                text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[ind + 1:]}</b>"""
+
+                await dp.bot.broadcaster(content=text, id_sender=msg.from_user.id, flag=res[1])
+            else:
+                await msg.answer('Возможно, вы неправильно ввели команду')
+
     else:
         await msg.answer('Я не понимаю')
 
@@ -254,8 +261,8 @@ async def out_subscribe_for_user(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     users = ''
     if groupUser[0]:
-        usrName = await dp.bot.db.get_attrForColumn(columns='first_name', table='users',
-                                                    param=f"group_id='{groupUser[1]}' and id!='{msg.from_user.id}'")
+        usrName = await dp.bot.db.get_attrForColumn(columns='first_name', table='users',                                            param=f"group_id='{groupUser[1]}' and id!='{msg.from_user.id}'")
+
         usrName = [rec["first_name"] for rec in usrName]
         for user in usrName:
             users = users + user + '\n'  # <- делаем строку
@@ -293,22 +300,42 @@ async def get_text_messages(msg: types.Message):
 #     await message.answer(f"ID документа {message.document.file_id}")
 
 @dp.message_handler(content_types=ContentType.ANY)
-async def audio_handler(message: types.Message):
+async def media_handler(message: types.Message):
+    groupUser = await dp.bot.matchUser(['0', '1', '2'], message.from_user.id)
+    if groupUser:
 
-    if  'photo' in message.keys():
-        document_id = message.photo[0].file_id
-        file_info = await bot.get_file(document_id)
+        if  message.caption!=None:
+            
+            caption = message.caption
 
-        print(f'file_id: {file_info.file_id}')
-        # print(f'file_path: {file_info.file_path}')
-        # print(f'file_size: {file_info.file_size}')
-        # print(f'file_unique_id: {file_info.file_unique_id}')
-        await bot.send_photo(chat_id=message.chat.id, photo=file_info.file_id)
-        await message.answer(message.caption)
+            res = await dp.bot.checkingCommand(caption)
+            if res[0]:
+                ind = caption.find(' ')
 
-    if 'animation' in message.keys():
-        await message.answer(message.caption)
-        await message.answer_video(file_info.file_id)
+                if ind!=-1:
+                    text = f"""<i>{ message["from"]["first_name"]} { message["from"]["last_name"]}</i> всем:<b>\n{caption[ind + 1:]}</b>"""
+                        
+                else:
+                    text = f"""<i>{ message["from"]["first_name"]} { message["from"]["last_name"]}</i> всем:"""
+                        
+                if message.photo:
+
+                    document_id = message.photo[0].file_id
+                    file_info = await bot.get_file(document_id)
+
+                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, flag=res[1], id_media={'photo':file_info.file_id})
+
+                elif message.animation:
+    
+                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, flag=res[1], id_media={'video':message.animation.file_id})
+            else:
+                await message.answer('Пожалуйста, введите команду при отправке медиа файлов. Например, /msg_all или /msg_all [msg]')
+
+        else:
+            await message.answer('Не понимаю')
+            # await message.answer(message.caption)
+    
+            # await bot.send_animation(chat_id=message.from_user.id, animation=message.animation.file_id)
 
 
 # @dp.message_handler(content_types=['photo'])
