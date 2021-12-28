@@ -16,7 +16,7 @@ counter = 0
 
 class TelegramBot(Bot):
     db = None
-    subscribes = {'Общие': 'from_users', 'Все тесты': 'res_all_tests', 'ОСЭК': 'rt_spo', 'Pentaschool': 'rt_penta', 'PSY': 'rt_psy', 'Мультидвижок': 'rt_mult', 'debug': 'debug'}
+    subscribes = {'All': 'from_users', 'All tests': 'res_all_tests', 'Osek': 'rt_spo', 'Pentaschool': 'rt_penta', 'Psy': 'rt_psy', 'Mult': 'rt_mult', 'debug': 'debug'}
 
     # для отправки сообщения 1 пользователю
     async def _send_message(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
@@ -138,7 +138,7 @@ class TelegramBot(Bot):
 
     async def checkingSubscriptions(self, id, group=None, purpose=None):
         subscribes = ''
-        subs = await self.db.get_attrForColumn(columns='debug, from_users as "ALL", res_all_tests as "ALL tests", rt_penta as "Pentaschool", rt_psy as "PSY", rt_mult as "Mult", rt_spo as "osek"', table='subscribes',
+        subs = await self.db.get_attrForColumn(columns='debug, from_users as "All", res_all_tests as "All tests", rt_penta as "Pentaschool", rt_psy as "Psy", rt_mult as "Mult", rt_spo as "Osek"', table='subscribes',
                                                  param=f'uid={id}')
         subs = [dict(row) for row in subs]
         if group!='0':
@@ -151,7 +151,7 @@ class TelegramBot(Bot):
                     subscribes = subscribes + f' "{key}" '
             return subscribes
         elif purpose=='УЦ':
-            if (subs[0]['Pentaschool']==False) and (subs[0]['PSY']==False) and (subs[0]['Мультидвижок']==False) and (subs[0]['ОСЭК']==False):
+            if (subs[0]['Pentaschool']==False) and (subs[0]['PSY']==False) and (subs[0]['Mult']==False) and (subs[0]['osek']==False):
                 return False
             else:
                 return True
