@@ -138,7 +138,7 @@ class TelegramBot(Bot):
 
     async def checkingSubscriptions(self, id, group=None, purpose=None):
         subscribes = ''
-        subs = await self.db.get_attrForColumn(columns='debug, from_users as "Общие", res_all_tests as "Все тесты", rt_penta as "Pentaschool", rt_psy as "PSY", rt_mult as "Мультидвижок", rt_spo as "ОСЭК"', table='subscribes',
+        subs = await self.db.get_attrForColumn(columns='debug, from_users as "ALL", res_all_tests as "ALL tests", rt_penta as "Pentaschool", rt_psy as "PSY", rt_mult as "Mult", rt_spo as "osek"', table='subscribes',
                                                  param=f'uid={id}')
         subs = [dict(row) for row in subs]
         if group!='0':
