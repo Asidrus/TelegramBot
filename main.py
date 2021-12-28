@@ -33,7 +33,7 @@ bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
 btnMessage = btnMessage()
 
-db_data = {"user": db_user, "password": db_password, "database": db_name, "host": db_host}
+db_data = {"user": DB_NAME, "password": DB_PASSWORD, "database": DB_NAME, "host": DB_HOST}
 
 
 ################# КОМАНДЫ ################################
