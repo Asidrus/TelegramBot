@@ -5,14 +5,16 @@ import sys
 
 class Protocol:
     """
-    protocol v 0.1
+    protocol v 0.2
     text and image transmission
+
+    @changelog v 0.2
+    remove debug
     """
     header = [{'head': "request", "data": {"len": 8, "offset": 0, "value": None}},
-              {'head': "debug", "data": {"len": 1, "offset": 8, "value": None}},
-              {'head': "contentType", "data": {"len": 1, "offset": 9, "value": None}},
-              {'head': "content", "data": {"len": 4, "offset": 10, "value": None}},
-              {'head': "image", "data": {"len": 8, "offset": 14, "value": None}}]
+              {'head': "contentType", "data": {"len": 1, "offset": 8, "value": None}},
+              {'head': "content", "data": {"len": 4, "offset": 9, "value": None}},
+              {'head': "image", "data": {"len": 8, "offset": 13, "value": None}}]
 
     raw = b''
 
@@ -39,14 +41,13 @@ class Protocol:
                 head['data']['value'] = value
                 return None
 
-    def setData(self, content, debug=0, contentType: str = 'json', image: bytes = b''):
+    def setData(self, content, contentType: str = 'json', image: bytes = b''):
         if contentType == 'json':
             content = str(content).encode()
             contentType = 0
         elif contentType == 'text':
             content = content.encode()
             contentType = 1
-        self.set("debug", 1)
         self.set("contentType", 1)
         self.set("content", len(content))
         self.set("image", len(image))
@@ -54,7 +55,6 @@ class Protocol:
         for head in self.header:
             self.raw = self.raw + (head['data']['value']).to_bytes(head['data']['len'], byteorder='big')
         self.raw = self.raw + \
-                   debug.to_bytes(1, byteorder='big') + \
                    contentType.to_bytes(1, byteorder='big') + \
                    content + \
                    image
@@ -72,11 +72,9 @@ class Protocol:
                 length = head['data']['value']
                 self.data[head['head']] = s[cursor:cursor + length]
                 cursor = cursor + length
-        self.data['debug'] = int.from_bytes(self.data['debug'], 'big')
         contentType = int.from_bytes(self.data['contentType'], 'big')
         if contentType == 0:
             self.data['contentType'] = 'json'
-            print(self.data['content'])
             self.data['content'] = json.loads(self.data['content'].decode('utf-8').replace("'", "\""))
         elif contentType == 1:
             self.data['contentType'] = 'text'
@@ -115,7 +113,6 @@ class Server:
             if self.handler is None:
                 pass
             else:
-                print(request)
                 response = await self.handler(**request)
                 if response is not None:
                     await writeMessage(writer, **response)
@@ -182,6 +179,7 @@ async def handlerIn(**kwargs):
 
 
 async def handlerOut(**kwargs):
+    print(kwargs['text'].decode())
     if kwargs['text'].decode() == 'test':
         return {'text': 'ok'}
     else:
@@ -189,6 +187,7 @@ async def handlerOut(**kwargs):
 
 
 if __name__ == "__main__":
+    print(sys.argv[1])
     if sys.argv[1] == '1':
         print('start server')
         server = Server(handler=handlerIn)
@@ -198,4 +197,4 @@ if __name__ == "__main__":
     else:
         print('start client')
         client = Client()
-        asyncio.run(client.send(contentType='text', content='hello world', debug=0, image=b'adasd'))
+        asyncio.run(client.send(contentType='text', content='hello world', image=b'adasd'))

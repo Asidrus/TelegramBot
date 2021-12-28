@@ -16,7 +16,7 @@ counter = 0
 
 class TelegramBot(Bot):
     db = None
-    subscribes = {'Общие': 'from_users', 'Все тесты': 'res_all_tests', 'Pentaschool': 'rt_penta', 'PSY': 'rt_psy', 'Мультидвижок': 'rt_mult', 'debug': 'debug'}
+    subscribes = {'Общие': 'from_users', 'Все тесты': 'res_all_tests', 'ОСЭК': 'rt_spo', 'Pentaschool': 'rt_penta', 'PSY': 'rt_psy', 'Мультидвижок': 'rt_mult', 'debug': 'debug'}
 
     # для отправки сообщения 1 пользователю
     async def _send_message(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
@@ -47,79 +47,66 @@ class TelegramBot(Bot):
         return False
 
     # перебор id пользователей
-    async def broadcaster(self, contentType='text', content=None, debug=0, id_sender=None, image=None, flag=None, id_media=None) -> int:
-        print(content)
+    async def broadcaster(self, contentType='text', content=None, id_sender=None, image=None, project=None, id_media=None) -> int:
         if contentType == 'text':
             pass
         elif contentType == 'json':
-            if (content is not None) and (content['flag'] is not None):
-                flag = content['flag']
+            if (content is not None) and (content['project'] is not None):
+                project = content['project']
             content = content['msg']
-        # if 'rt_penta' in content.keys():
-        #     penta = content['rt_penta']
-        # elif 'rt_MD' in content.keys():
-        #     Mult = content['rt_penta']
+
         """
         Simple broadcaster
         :return: Count of messages
         """
-       
 
-        if flag == 'all':
-            users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id!='0'")
+        print(project)
+
+        if project == 'all':
+            users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id!='3'")
 
             users_id = [rec["id"] for rec in users_id]
 
-        else:
+        elif project == 'mult' or project == "penta" or project == "psy" or project == "spo":
             if id_sender is not None:
-                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{flag}='true' OR uid='{id_sender}'")
+                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{project}='true' OR uid='{id_sender}' or res_all_tests='true'")
             else:
-                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{flag}='true'")
+                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{project}='true' or res_all_tests='true'")
                 
             users_id = [rec["uid"] for rec in users_id]
 
-        if debug == 0:
-            users_id = await self.db.fetch(
-                    "SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where result_tests='true';")
-            users_id = [rec["id"] for rec in users_id]
-        elif debug == 1:
+           
+        elif project == 'debug' or project == "":
             users_id = await self.db.fetch(
                     f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
             users_id = [rec["id"] for rec in users_id]
 
-        try:
-            for id in users_id:
-                if await self._send_message(str(id), f'{content}'):
-                    # обнулить подписку пользователя
-                    pass
-                await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
+        if  len(users_id) == 1 and len(users_id) == 0 and id_sender==None:
+            await self._send_message(str(id_sender), 'Пользователи не найдены')
+        else: 
+            try:
+        
+                for id in users_id:
+                    if await self._send_message(str(id), f'{content}'):
+                        # обнулить подписку пользователя
+                        pass
+                    await asyncio.sleep(.05)  # 20 messages per second (Limit: 30 messages per second)
 
-                if image is not None and len(image) != 0:
-                    await self.send_photo(chat_id=id, photo=image)
-                    await asyncio.sleep(.05)
-
-                if  id_media is not None:
-                    if 'video' in id_media.keys():
-                        await self.send_animation(chat_id=id, animation=id_media['video'])
-                        await asyncio.sleep(.05)
-                    elif 'photo' in id_media.keys():
-                        await self.send_photo(chat_id=id, photo=id_media['photo'])
+                    if image is not None and len(image) != 0:
+                        await self.send_photo(chat_id=id, photo=image)
                         await asyncio.sleep(.05)
 
-        except Exception as e:
-            raise e
+                    if  id_media is not None:
+                        if 'video' in id_media.keys():
+                            await self.send_animation(chat_id=id, animation=id_media['video'])
+                            await asyncio.sleep(.05)
+                        elif 'photo' in id_media.keys():
+                            await self.send_photo(chat_id=id, photo=id_media['photo'])
+                            await asyncio.sleep(.05)
 
-    async def checkingCommand(self, command):
-        ind = int(command.find(" ")) 
-        if ind!=-1:
-            command = command[5:ind] 
-        else:
-            command = command[5:]
+            except Exception as e:
+                raise e
 
-        if command == 'penta' or command == 'psy' or command == 'mult' or command == 'all':
-            return [True, command]
-        else:
-            return [False, command]
 
 
     # Для изменения данных в таблицах subscribes и users
@@ -151,22 +138,20 @@ class TelegramBot(Bot):
 
     async def checkingSubscriptions(self, id, group=None, purpose=None):
         subscribes = ''
-        subs = await self.db.get_attrForColumn(columns='debug, from_users as "Общие", res_all_tests as "Все тесты", rt_penta as "Pentaschool", rt_psy as "PSY", rt_mult as "Мультидвижок"', table='subscribes',
+        subs = await self.db.get_attrForColumn(columns='debug, from_users as "Общие", res_all_tests as "Все тесты", rt_penta as "Pentaschool", rt_psy as "PSY", rt_mult as "Мультидвижок", rt_spo as "ОСЭК"', table='subscribes',
                                                  param=f'uid={id}')
         subs = [dict(row) for row in subs]
-        if purpose=='subs':
-            if group=='0':
+        if group!='0':
                 del subs[0]['debug']
+        if purpose=='subs':
             return subs[0]
         elif purpose=='my_subs':
-            if group == '0':
-                if subs[0]['debug']:
-                    subscribes = ' "Дебаг" '
-            for key in subs[0].keys():
-                 subscribes = subscribes + f' "{key}" '
+            for key, val in subs[0].items():
+                if val:
+                    subscribes = subscribes + f' "{key}" '
             return subscribes
         elif purpose=='УЦ':
-            if subs[0]['Pentaschool']==False and subs[0]['PSY']==False and subs[0]['Мультидвижок']==False:
+            if (subs[0]['Pentaschool']==False) and (subs[0]['PSY']==False) and (subs[0]['Мультидвижок']==False) and (subs[0]['ОСЭК']==False):
                 return False
             else:
                 return True

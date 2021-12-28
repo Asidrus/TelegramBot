@@ -32,33 +32,51 @@ async def send_help(msg: types.Message):
     if groupUser == '0':
         await msg.answer("""
         Полный список команд:
-        /change_group - сменить группу
-        /msg_all [msg] - разослать всем пользователям из своей группы сообщение
-        /msg_mult [msg]
-        /msg_penta [msg]
-        /msg_psy [msg]
+        
+        Отправка сообщений
+        /all [msg] - разослать всем пользователям из своей группы сообщение
+        /mult [msg] - разослать сообщения всем пользователям УЦ Мультидвижок
+        /penta [msg] - разослать сообщения всем пользователям УЦ Pentaschool
+        /psy [msg] - разослать сообщения всем пользователям УЦ PSY
+        /spo [msg] - разослать сообщения всем пользователям в подписанным на ОСЭК
+
+
+        Работа с подписками 
         /out_subscr - посмотреть свои подписки
-        /subscribe - подписаться на рассыл0чки
+        /subscribe - подписаться на рассылки
+        /unsubscribe - отписаться от рассыл0чки
+
+        Другое
         /leave - покинуть группу
         /help - вывод справки
-        /unsubscribe - отписаться от рассыл0чки
+        /change_group - сменить группу
         """)
 
     elif groupUser == '1' or groupUser == '2':
         await msg.answer("""
         Полный список команд:
-        /start - активировать чат-бота
-        /msg_all - разослать всем пользователям из своей группы сообщение
-        /msg_mult [msg]
-        /msg_penta [msg]
-        /msg_psy [msg]
-        /subscribe - подписаться на рассыл0чки
+
+        *Отправка сообщений*
+        /all [msg] - разослать всем пользователям из своей группы сообщение
+        /mult [msg] - разослать сообщения всем пользователям УЦ Мультидвижок
+        /penta [msg] - разослать сообщения всем пользователям УЦ Pentaschool
+        /psy [msg] - разослать сообщения всем пользователям УЦ PSY
+        /spo [msg] - разослать сообщения всем пользователям в подписанным на ОСЭК
+
+        Вы можете отправлять текст, изображение, видео. При отправке всех видов сообщений должна быть введена любая из вышеперечисленных команд
+
+        *Работа с подписками*
+        /subscribe - подписаться на рассылки
         /out_subscr - посмотреть свои подписки
-        /users - посмотреть всех пользователей в моей группе
-        /unsubscribe - отписаться от рассыл0чки
+        /unsubscribe - отписаться от рассылки
+      
+
+       *Другое*
+        /start - активировать чат-бота
         /help - вывод справки
         /rules - правила бойцовского клуба
         /leave - покинуть группу
+        /users - посмотреть всех пользователей в моей группе
         """)
 
     elif groupUser == '3':
@@ -124,13 +142,16 @@ async def group_entry(msg: types.Message):
                     await msg.answer(
                         'Добро пожаловать в ряды тетировщиков! Вам автоматически подключена подписка на рассылку по результатам тестов')
                     await dp.bot.groupTransfer(group=group, column='res_all_tests', id=msg.from_user.id)
+
                     if not subs:
                         await bot.send_message(msg.from_user.id,
                                'Выберите УЦ, на который вы хотите подписаться',
                                reply_markup=btnMessage.inline_kb_uc_subscription)
+                               
                 elif group == '2':
                     await msg.answer('Добро пожаловать!')
                     await dp.bot.groupTransfer(group=group, id=msg.from_user.id)
+
                     if not subs:
                         await bot.send_message(msg.from_user.id, 'Выберите УЦ, на который вы хотите подписаться',
                                reply_markup=btnMessage.inline_kb_uc_subscription)
@@ -166,44 +187,7 @@ async def change_group(msg: types.Message):
         await msg.answer('Недостаточно прав')
 
 
-@dp.message_handler(commands=['test'])
-async def __test__(msg: types.Message):
-    interval = msg.text.replace('/test ', "")
-    t1 = interval[:interval.find("-")]
-    t2 = interval[interval.find("-") + 1:]
-    try:
-        date1 = datetime.strptime(t1, '%m/%d/%Y')
-        date2 = datetime.strptime(t2, '%m/%d/%Y')
-    except Exception as e:
-        await msg.answer("Введите в формате: /test 01/01/2021-12/31/2021")
-        return 0
-    connection = await asyncpg.connect(user=db_user,
-                                       password=db_password,
-                                       database="speedtest",
-                                       host="localhost")
-
-    res = await getNotes(connection, "https://pentaschool.ru", t1, t2)
-    days = (date2 - date1).days
-    data = []
-    for i in range(days):
-        data.append([(rec["speed"].microsecond / 1000.0 + rec["speed"].second) for rec in res if
-                     ((rec["datetime"] - date1).days >= i) and ((rec["datetime"] - date1).days < (i + 1))])
-    if len(res) == 0:
-        await msg.answer("По данному диапозону не найдено тестов")
-    else:
-        await connection.close()
-        # plt.plot([(rec["speed"].microsecond / 1000.0 + rec["speed"].second) for rec in res])
-
-        fig4, ax4 = plt.subplots()
-        ax4.set_title('Hide Outlier Points')
-        ax4.boxplot(data, showfliers=False)
-
-        fname = f"../temp/{random.randint(0, 2 ** 32)}.png"
-        plt.savefig(fname)
-        await bot.send_photo(chat_id=msg.from_user.id, photo=open(fname, 'rb'))
-
-
-@dp.message_handler(commands=['msg_all', 'msg_penta', 'msg_psy', 'msg_mult'])
+@dp.message_handler(commands=['all', 'penta', 'psy', 'mult', 'spo'])
 async def send_broadcast(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     if groupUser[0]:
@@ -211,21 +195,27 @@ async def send_broadcast(msg: types.Message):
         first_name = msg["from"]["first_name"]
         last_name = msg["from"]["last_name"]
         ind = text.find(' ')
-
-        if ind == -1:
-            await msg.answer("Пожалуйста, введите текст сообщения. Например '/msg_all Всем привет!'")
+  
+        if ind == -1 or len(text)<=5:
+            await msg.answer("Пожалуйста, введите текст сообщения. Например, '/all Всем привет!'")
         else:
-            res = await dp.bot.checkingCommand(msg['text'])
-            if res[0]:
-
-                text = f"""<i>{first_name} {last_name}</i> всем:<b>\n{text[ind + 1:]}</b>"""
-
-                await dp.bot.broadcaster(content=text, id_sender=msg.from_user.id, flag=res[1])
-            else:
-                await msg.answer('Возможно, вы неправильно ввели команду')
-
+            text = f"""<i>{first_name} {last_name}</i> для {text[1:ind]}<b>\n{text[ind + 1:]}</b>"""
+            await dp.bot.broadcaster(content=text, id_sender=msg.from_user.id, project=msg['text'][1:ind])
     else:
         await msg.answer('Я не понимаю')
+
+
+@dp.message_handler(commands=['broadcast'])
+async def subscribe_user(msg: types.Message):
+    groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
+    if groupUser[0]:
+        await msg.answer(
+                'Привет! Эта команда больше недоступна. Вместо нее можно использовать команды /all, /penta, /psy, /mult, /spo. Более подробную информацию можно посмотреть в /help')
+       
+    else:
+        await msg.answer('Недостаточно прав')
+
+
 
 @dp.message_handler(commands=['subscribe'])
 async def subscribe_user(msg: types.Message):
@@ -292,7 +282,7 @@ async def get_text_messages(msg: types.Message):
     if msg.text.lower() == 'привет':
         await msg.answer('Привет!')
     else:
-        await msg.answer('Не понимаю, что это значит.')
+        await msg.answer('Не понимаю, что это значит. Но ты можешь заглянуть в /help - тут описаны все мои возможности')
 
 # @dp.message_handler(content_types=["document"])
 # async def sticker_file_id(message: types.Message):
@@ -308,35 +298,34 @@ async def media_handler(message: types.Message):
             
             caption = message.caption
 
-            res = await dp.bot.checkingCommand(caption)
-            if res[0]:
-                ind = caption.find(' ')
+            ind = caption.find(' ')
 
-                if ind!=-1:
-                    text = f"""<i>{ message["from"]["first_name"]} { message["from"]["last_name"]}</i> всем:<b>\n{caption[ind + 1:]}</b>"""
-                        
-                else:
-                    text = f"""<i>{ message["from"]["first_name"]} { message["from"]["last_name"]}</i> всем:"""
-                        
+            if ind!=-1:
+                command = caption[1:ind] 
+                text = f"""<i>{ message["from"]["first_name"]} { message["from"]["last_name"]}</i> для {command}:<b>\n{caption[ind + 1:]}</b>"""
+
+            else:
+                command = caption[1:]
+                text = f"""<i>{ message["from"]["first_name"]} { message["from"]["last_name"]}</i> для {command}:"""
+
+            if command == 'penta' or command == 'psy' or command == 'mult' or command == 'all' or command == 'spo':
+            
                 if message.photo:
 
                     document_id = message.photo[0].file_id
                     file_info = await bot.get_file(document_id)
 
-                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, flag=res[1], id_media={'photo':file_info.file_id})
+                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, project=command, id_media={'photo':file_info.file_id})
 
                 elif message.animation:
     
-                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, flag=res[1], id_media={'video':message.animation.file_id})
+                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, project=command, id_media={'video':message.animation.file_id})
             else:
-                await message.answer('Пожалуйста, введите команду при отправке медиа файлов. Например, /msg_all или /msg_all [msg]')
+                await message.answer('Пожалуйста, введите команду при отправке медиа файлов. Например, /all или /all [msg]')
 
         else:
             await message.answer('Не понимаю')
-            # await message.answer(message.caption)
-    
-            # await bot.send_animation(chat_id=message.from_user.id, animation=message.animation.file_id)
-
+      
 
 # @dp.message_handler(content_types=['photo'])
 # async def scan_message(msg: types.Message):
@@ -390,10 +379,13 @@ async def callbacks_num(call: types.CallbackQuery):
             await bot.send_message(call.from_user.id, f'Вы отписались от {action}')
         else:
             await bot.send_message(call.from_user.id, 'Что то пошло не так')
+            
     else:
         res = await dp.bot.workSubscribes(uid=call.from_user.id, act=action)
         if res:
             await bot.send_message(call.from_user.id, f'Вам оформлена подписка на {action}')
+            # await bot.send_message(call.from_user.id, 'Выберите УЦ, на который вы хотите подписаться',
+            #                    reply_markup=btnMessage.inline_kb_uc_subscription)
         else:
             await bot.send_message(call.from_user.id,'Что то пошло не так')   
 

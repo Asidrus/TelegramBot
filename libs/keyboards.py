@@ -6,8 +6,10 @@ class btnMessage():
     inline_bt_subscr_penta = InlineKeyboardButton("Мультидвижок", callback_data='subs_Мультидвижок')
     inline_bt_subscr_psy = InlineKeyboardButton("PSY", callback_data='subs_PSY')
     inline_bt_subscr_mult = InlineKeyboardButton("Pentaschool", callback_data='subs_Pentaschool')
+    inline_bt_subscr_spo = InlineKeyboardButton("ОСЭК", callback_data='subs_ОСЭК')
+
     inline_bt_subscr_want = InlineKeyboardButton("Не хочу", callback_data='dont_want')
-    inline_kb_uc_subscription = InlineKeyboardMarkup(row_width=2).row(inline_bt_subscr_penta, inline_bt_subscr_psy, inline_bt_subscr_mult,inline_bt_subscr_want)
+    inline_kb_uc_subscription = InlineKeyboardMarkup(row_width=2).row(inline_bt_subscr_penta, inline_bt_subscr_psy, inline_bt_subscr_mult, inline_bt_subscr_spo, inline_bt_subscr_want)
 
 
     inline_bt_user_tester = InlineKeyboardButton("Тесты", callback_data='user_tester')
