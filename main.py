@@ -8,7 +8,6 @@ from libs.database import DataBase
 import asyncio
 from matplotlib import pyplot as plt, use
 import random
-from credentials import *
 from libs.keyboards import btnMessage
 from libs.network import Server
 import re
