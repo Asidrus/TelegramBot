@@ -14,6 +14,21 @@ from libs.network import Server
 import re
 from aiogram.dispatcher.filters import Text
 from aiogram.types.message import ContentType
+import os
+
+""" Read env """
+from dotenv import load_dotenv
+load_dotenv()
+
+PROJECT_NAME = os.getenv('PROJECT')
+STORAGE_PATH = os.getenv('STORAGE')
+IP = os.getenv('IP')
+PORT = os.getenv('PORT')
+DB_NAME = os.getenv('DB_NAME')
+DB_HOST = os.getenv('DB_HOST')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+API_TOKEN = os.getenv('API_TOKEN')
 
 bot = TelegramBot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
