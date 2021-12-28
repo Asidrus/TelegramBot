@@ -151,7 +151,7 @@ class TelegramBot(Bot):
                     subscribes = subscribes + f' "{key}" '
             return subscribes
         elif purpose=='УЦ':
-            if (subs[0]['Pentaschool']==False) and (subs[0]['PSY']==False) and (subs[0]['Mult']==False) and (subs[0]['osek']==False):
+            if (subs[0]['Pentaschool']==False) and (subs[0]['Psy']==False) and (subs[0]['Mult']==False) and (subs[0]['Osek']==False):
                 return False
             else:
                 return True
