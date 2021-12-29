@@ -5,9 +5,15 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    ports:
-      - 4321:4321
     expose:
-      - 5432
+      - 4321
     env_file:
       - ./.env
+    networks:
+      - host
+
+networks:
+  host:
+    name: host
+    external: true
+
