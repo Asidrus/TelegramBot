@@ -62,7 +62,7 @@ class TelegramBot(Bot):
 
         print(project)
 
-        if project == 'all':
+        if project == 'all' or project == "":
             users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id!='3'")
 
             users_id = [rec["id"] for rec in users_id]
@@ -76,7 +76,7 @@ class TelegramBot(Bot):
             users_id = [rec["uid"] for rec in users_id]
 
            
-        elif project == 'debug' or project == "":
+        elif project == 'debug' :
             users_id = await self.db.fetch(
                     f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
             users_id = [rec["id"] for rec in users_id]
