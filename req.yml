@@ -87,4 +87,4 @@ dependencies:
     - pytz==2021.3
     - typing-extensions==3.10.0.2
     - yarl==1.7.2
-prefix: /home/kali/anaconda3/envs/telegrambot
+prefix: /home/kali/anaconda3/envs/telegrambot_dev
