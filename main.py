@@ -19,6 +19,11 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+ENV_LOCAL = '.env_local'
+if os.path.isfile(ENV_LOCAL):
+    load_dotenv(ENV_LOCAL)
+
+
 PROJECT_NAME = os.getenv('PROJECT')
 STORAGE_PATH = os.getenv('STORAGE')
 IP = os.getenv('IP')

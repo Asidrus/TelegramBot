@@ -14,9 +14,6 @@ cred = {"user": DB_USER,
         "database": DB_NAME,
         "host": DB_HOST}
 
-print(cred)
-
-
 def db_connection(**kwargs):
     """
     @db_connection(user="...", password="...", database="...", host="...")
