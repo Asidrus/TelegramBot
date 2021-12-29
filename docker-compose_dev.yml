@@ -8,11 +8,11 @@ services:
     expose:
       - 4321
     env_file:
-      - ./.env
+      - ./.env_local_dev
     networks:
       - host
 
 networks:
   host:
     external: true
-      name: host_name
+      name: host
