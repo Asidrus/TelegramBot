@@ -1,4 +1,4 @@
-name: telegrambot
+name: telegrambot_dev
 channels:
   - conda-forge
   - defaults
