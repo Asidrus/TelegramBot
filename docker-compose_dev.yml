@@ -8,4 +8,4 @@ services:
     ports:
       - 4321:1234
     env_file:
-      - ./.env_copy
+      - ./.env
