@@ -15,4 +15,4 @@ services:
 networks:
   host:
     external: true
-
+      name: host
