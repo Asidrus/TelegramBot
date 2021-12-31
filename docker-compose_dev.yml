@@ -6,6 +6,6 @@ services:
       context: ./
       dockerfile: Dockerfile
     env_file:
-      - ./.env_local_dev
+      - ./.env
     ports:
       - 4321:1234
