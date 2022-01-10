@@ -422,7 +422,7 @@ async def getNotes(conn, url, From, To):
 
 def main():
     bot.db = DataBase()
-    server = Server(IP, PORT, handler=bot.broadcaster)
+    server = Server("0.0.0.0", PORT, handler=bot.broadcaster)
 
     loop = asyncio.new_event_loop()
     loop.create_task(server.runSever())

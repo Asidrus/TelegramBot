@@ -1,0 +1,11 @@
+version: '3.3'
+
+services:
+  telegram_dev:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    ports:
+      - 4321:1234
