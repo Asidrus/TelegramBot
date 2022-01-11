@@ -9,6 +9,7 @@ from libs.network import Server
 from aiogram.dispatcher.filters import Text
 from aiogram.types.message import ContentType
 import os
+import help
 
 """ Read env """
 from dotenv import load_dotenv
@@ -40,10 +41,11 @@ db_data = {"user": DB_NAME, "password": DB_PASSWORD, "database": DB_NAME, "host"
 
 @dp.message_handler(commands=['help'])
 async def send_help(msg: types.Message):
-    groupUser = await dp.bot.db.join_query(column='description', main_table='groups', side_table="users", fk_col="group_id", where=f'users.id={msg.from_user.id}')
-    help = groupUser[0]["description"]
-
-    await msg.answer(help)
+    groupUser = await dp.bot.db.get_attrForColumn(columns='group_id', table='users', param=f'id={msg.from_user.id}')
+    groupUser = groupUser[0]["group_id"]
+    for key in help.dick_help.key():
+        if key==groupUser:
+            await msg.answer(help)
 
 
 @dp.message_handler(commands=['start'])

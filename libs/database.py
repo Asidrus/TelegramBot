@@ -74,7 +74,3 @@ class DataBase:
     async def fetch(self, request: str, connection):
         return await connection.fetch(request)
 
-    @db_connection(**cred)
-    async def join_query(self, column, main_table, side_table, fk_col, connection, where=None):
-        return await connection.fetch( f"SELECT {column} FROM {main_table} LEFT JOIN {side_table} ON {main_table}.id={side_table}.{fk_col} where {where};")
-        
