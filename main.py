@@ -83,33 +83,35 @@ async def group_entry(msg: types.Message):
             for rec in pswd: 
                 if dp.bot.check_password(rec["pswd"], text[1]):
                     group = rec["id"]
+                    res = True
                     break
                 
-            if group == '0':
-                picture = open('img/maxresdefault.jpg', 'rb')
+            if res:   
+                if group == '0':
+                    picture = open('img/maxresdefault.jpg', 'rb')
 
-                await msg.answer('Добро пожаловать, господин администратор!')
+                    await msg.answer('Добро пожаловать, господин администратор!')
 
-                await bot.send_photo(chat_id=msg.from_user.id, photo=picture)
-                await dp.bot.groupTransfer(group=group, column='debug', id=msg.from_user.id)
+                    await bot.send_photo(chat_id=msg.from_user.id, photo=picture)
+                    await dp.bot.groupTransfer(group=group, column='debug', id=msg.from_user.id)
 
-            elif group == '1':
-                await msg.answer(
-                    'Добро пожаловать в ряды тетировщиков! Вам автоматически подключена подписка на рассылку по результатам тестов')
-                await dp.bot.groupTransfer(group=group, column='res_all_tests', id=msg.from_user.id)
+                elif group == '1':
+                    await msg.answer(
+                        'Добро пожаловать в ряды тетировщиков! Вам автоматически подключена подписка на рассылку по результатам тестов')
+                    await dp.bot.groupTransfer(group=group, column='res_all_tests', id=msg.from_user.id)
 
-                if not subs:
-                    await bot.send_message(msg.from_user.id,
-                            'Выберите УЦ, на который вы хотите подписаться',
-                            reply_markup=btnMessage.inline_kb_uc_subscription)
-                               
-            elif group == '2':
-                await msg.answer('Добро пожаловать!')
-                await dp.bot.groupTransfer(group=group, id=msg.from_user.id)
+                    if not subs:
+                        await bot.send_message(msg.from_user.id,
+                                'Выберите УЦ, на который вы хотите подписаться',
+                                reply_markup=btnMessage.inline_kb_uc_subscription)
+                                
+                elif group == '2':
+                    await msg.answer('Добро пожаловать!')
+                    await dp.bot.groupTransfer(group=group, id=msg.from_user.id)
 
-                if not subs:
-                    await bot.send_message(msg.from_user.id, 'Выберите УЦ, на который вы хотите подписаться',
-                               reply_markup=btnMessage.inline_kb_uc_subscription)
+                    if not subs:
+                        await bot.send_message(msg.from_user.id, 'Выберите УЦ, на который вы хотите подписаться',
+                                reply_markup=btnMessage.inline_kb_uc_subscription)
             else:
                 await msg.answer('Неверный пароль')
         else:
