@@ -59,18 +59,22 @@ class DataBase:
 
 
     @db_connection(**cred)
-    async def get_attrForColumn(sels, columns: str, table: str, connection, param=None):
+    async def get_attrForColumn(self, columns: str, table: str, connection, param=None):
         if param is None:
             return await connection.fetch(f"Select {columns} from {table}")
         else:
-            # print(f"Select {columns} from {table} where {param}")
             return await connection.fetch(f"Select {columns} from {table} where {param}")
 
     @db_connection(**cred)
-    async def updateData(sels, column, table, param, where, id, connection):
+    async def updateData(self, column, table, param, where, id, connection):
         return await connection.fetch(f"UPDATE {table} SET {column}='{param}' where {where}={id}")
 
 
     @db_connection(**cred)
     async def fetch(self, request: str, connection):
         return await connection.fetch(request)
+
+    @db_connection(**cred)
+    async def join_query(self, column, main_table, side_table, fk_col, connection, where=None):
+        return await connection.fetch( f"SELECT {column} FROM {main_table} LEFT JOIN {side_table} ON {main_table}.id={side_table}.{fk_col} where {where};")
+        

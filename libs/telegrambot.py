@@ -1,10 +1,7 @@
 import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.utils import exceptions, executor
-import json
+from aiogram import Bot
+from aiogram.utils import exceptions
 import logging
-import io
-import uuid
 import hashlib
 
 logging.basicConfig(level=logging.INFO)
@@ -132,14 +129,14 @@ class TelegramBot(Bot):
         else:
             return res
 
-    async def check_password(self, hashed_password, user_password):
+
+    def check_password(self, hashed_password, user_password):
         password, salt = hashed_password.split(':')
         return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
 
     async def checkingSubscriptions(self, id, group=None, purpose=None):
         subscribes = ''
-        subs = await self.db.get_attrForColumn(columns='debug, from_users as "General", res_all_tests as "All tests", rt_penta as "Pentaschool", rt_psy as "Psy", rt_mult as "Mult", rt_osek as "Osek"', table='subscribes',
-                                                 param=f'uid={id}')
+        subs = await self.db.get_attrForColumn(columns='debug, from_users as "General", res_all_tests as "All tests", rt_penta as "Pentaschool", rt_psy as "Psy", rt_mult as "Mult", rt_osek as "Osek"', table='subscribes', param=f'uid={id}')
         subs = [dict(row) for row in subs]
         if group!='0':
                 del subs[0]['debug']
@@ -165,5 +162,4 @@ class TelegramBot(Bot):
 
             return True
         except Exception as e:
-            print(e)
             return False
