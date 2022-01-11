@@ -4,6 +4,10 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+ENV_LOCAL = '.env_local'
+if os.path.isfile(ENV_LOCAL):
+    load_dotenv(ENV_LOCAL)
+
 DB_NAME = os.getenv('DB_NAME')
 DB_HOST = os.getenv('DB_HOST')
 DB_USER = os.getenv('DB_USER')
@@ -42,13 +46,9 @@ class DataBase:
     @db_connection(**cred)
     async def add_user(self, data, connection):
         await connection.fetch(
-            f"""INSERT into users (id, is_bot, first_name, last_name, group_id, language_code) 
-            Values({data["id"]},{data["is_bot"]},'{data["first_name"]}', '{data["last_name"]}', '3', '{data["language_code"]}')"""
+              f"""CALL public.add_user({data["id"]},'{data["is_bot"]}','{data["first_name"]}', '{data["last_name"]}', '{data["language_code"]}')"""
         )
-        await connection.fetch(
-            f"""INSERT into subscribes (uid, debug, from_users, result_tests) 
-            Values({data["id"]}, '0', '0', '0')"""
-        )
+
 
     @db_connection(**cred)
     async def get_user(self, id, connection):

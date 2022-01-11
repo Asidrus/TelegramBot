@@ -1,3 +1,4 @@
-./.env_local
+.env_local
 .idea
 credentials.py
+.env
