@@ -4,6 +4,10 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+ENV_LOCAL = '.env_local'
+if os.path.isfile(ENV_LOCAL):
+    load_dotenv(ENV_LOCAL)
+
 DB_NAME = os.getenv('DB_NAME')
 DB_HOST = os.getenv('DB_HOST')
 DB_USER = os.getenv('DB_USER')
@@ -42,13 +46,9 @@ class DataBase:
     @db_connection(**cred)
     async def add_user(self, data, connection):
         await connection.fetch(
-            f"""INSERT into users (id, is_bot, first_name, last_name, group_id, language_code) 
-            Values({data["id"]},{data["is_bot"]},'{data["first_name"]}', '{data["last_name"]}', '3', '{data["language_code"]}')"""
+              f"""CALL public.add_user({data["id"]},'{data["is_bot"]}','{data["first_name"]}', '{data["last_name"]}', '{data["language_code"]}')"""
         )
-        await connection.fetch(
-            f"""INSERT into subscribes (uid, debug, from_users, res_all_tests, rt_penta, rt_psy, rt_mult, rt_spo)
-            Values({data["id"]}, '0', '0', '0', '0', '0', '0', '0')"""
-        )
+
 
     @db_connection(**cred)
     async def get_user(self, id, connection):
@@ -59,18 +59,18 @@ class DataBase:
 
 
     @db_connection(**cred)
-    async def get_attrForColumn(sels, columns: str, table: str, connection, param=None):
+    async def get_attrForColumn(self, columns: str, table: str, connection, param=None):
         if param is None:
             return await connection.fetch(f"Select {columns} from {table}")
         else:
-            # print(f"Select {columns} from {table} where {param}")
             return await connection.fetch(f"Select {columns} from {table} where {param}")
 
     @db_connection(**cred)
-    async def updateData(sels, column, table, param, where, id, connection):
+    async def updateData(self, column, table, param, where, id, connection):
         return await connection.fetch(f"UPDATE {table} SET {column}='{param}' where {where}={id}")
 
 
     @db_connection(**cred)
     async def fetch(self, request: str, connection):
         return await connection.fetch(request)
+
