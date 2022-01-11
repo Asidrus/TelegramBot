@@ -43,7 +43,7 @@ guest= """
         Полный список команд:
         /start - активировать чат-бота
         /help - вывод справки
-        /enstance [pswd]- вход
+        /signin [pswd]- вход
         """
 
 dick_help = {'0':admin, '1':general, '2':general, '3':guest}
