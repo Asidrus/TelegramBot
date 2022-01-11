@@ -2,3 +2,4 @@
 .idea
 credentials.py
 .env
+.gitignor

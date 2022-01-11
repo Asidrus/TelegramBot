@@ -43,9 +43,9 @@ db_data = {"user": DB_NAME, "password": DB_PASSWORD, "database": DB_NAME, "host"
 async def send_help(msg: types.Message):
     groupUser = await dp.bot.db.get_attrForColumn(columns='group_id', table='users', param=f'id={msg.from_user.id}')
     groupUser = groupUser[0]["group_id"]
-    for key in help.dick_help.key():
+    for key, val in help.dick_help.items():
         if key==groupUser:
-            await msg.answer(help)
+            await msg.answer(val)
 
 
 @dp.message_handler(commands=['start'])
