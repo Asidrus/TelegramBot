@@ -140,6 +140,17 @@ async def group_entry(msg: types.Message):
         subs = await dp.bot.checkingSubscriptions(msg.from_user.id, purpose='УЦ')
         text = msg.text.split()
         if len(text) != 1:
+            #
+            # Этот блок
+            #
+            # group = None
+            # pswd = await dp.bot.db.get_attrForColumn(columns='pswd, gid', table='groups', param="pswd!='None'")
+            # for rec in pswd:
+            #     if dp.bot.check_password(rec["pswd"], text[1]):
+            #         group = rec["gid"]
+            #         break
+
+            # меняем на это
             pswd = await dp.bot.db.get_attrForColumn(columns='pswd', table='groups', param="pswd!='None'")
             for rec in pswd:          
                 res = await dp.bot.check_password(rec["pswd"], text[1])
@@ -149,6 +160,7 @@ async def group_entry(msg: types.Message):
             if res:  # если в списке есть пароль
                 group = await dp.bot.db.get_attrForColumn(columns='gid', table='groups', param=f"pswd='{pswd}'")
                 group = group[0]["gid"]
+            #
                 if group == '0':
                     picture = open('img/maxresdefault.jpg', 'rb')
 
@@ -185,6 +197,7 @@ async def group_entry(msg: types.Message):
 # Покинуть группу пользователя. Все, кроме 3
 @dp.message_handler(commands=['leave'])
 async def leave_group(msg: types.Message):
+    # что за херня тут происходит?
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     if groupUser[0]:
         if groupUser[1] == '0':

@@ -67,6 +67,11 @@ class TelegramBot(Bot):
 
             users_id = [rec["id"] for rec in users_id]
 
+        # должно быть где-то в константах:
+        # projects = ["mult", "penta", "psy", "spo"]
+        #
+        # elif project in projects:
+        #
         elif project == 'mult' or project == "penta" or project == "psy" or project == "spo":
             if id_sender is not None:
                 users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{project}='true' OR uid='{id_sender}' or res_all_tests='true'")
@@ -81,6 +86,7 @@ class TelegramBot(Bot):
                     f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
             users_id = [rec["id"] for rec in users_id]
 
+        # зачем эта проверка?
         if  len(users_id) == 1 and len(users_id) == 0 and id_sender==None:
             await self._send_message(str(id_sender), 'Пользователи не найдены')
         else: 
