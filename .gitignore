@@ -3,3 +3,5 @@
 credentials.py
 .env
 .gitignor
+__pycache__
+libs/__pycache__
