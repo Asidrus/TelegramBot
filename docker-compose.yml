@@ -1,7 +1,7 @@
 version: '3.3'
 
 services:
-  telegram_dev:
+  telegram:
     build:
       context: ./
       dockerfile: Dockerfile

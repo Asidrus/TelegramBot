@@ -20,10 +20,10 @@ if os.path.isfile(ENV_LOCAL):
     load_dotenv(ENV_LOCAL)
 
 
-# PROJECT_NAME = os.getenv('PROJECT')
-# STORAGE_PATH = os.getenv('STORAGE')
-# IP = os.getenv('IP')
-# PORT = os.getenv('PORT')
+PROJECT_NAME = os.getenv('PROJECT')
+STORAGE_PATH = os.getenv('STORAGE')
+IP = os.getenv('IP')
+PORT = os.getenv('PORT')
 DB_NAME = os.getenv('DB_NAME')
 DB_HOST = os.getenv('DB_HOST')
 DB_USER = os.getenv('DB_USER')
@@ -369,7 +369,7 @@ async def callbacks_num(call: types.CallbackQuery):
 
 def main():
     bot.db = DataBase()
-    server = Server("0.0.0.0", 1111, handler=bot.broadcaster)
+    server = Server("0.0.0.0", PORT, handler=bot.broadcaster)
 
     loop = asyncio.new_event_loop()
     loop.create_task(server.runSever())
