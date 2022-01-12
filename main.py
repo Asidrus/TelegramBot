@@ -53,7 +53,6 @@ async def send_help(msg: types.Message):
 @dp.message_handler(commands=['start'])
 async def send_welcome(msg: types.Message):
     res = await dp.bot.db.get_user(msg.from_user.id)
-    res = await dp.bot.db.get_user(1234567890)
     if len(res) == 0:
         await dp.bot.db.add_user(msg["from"])
         await msg.reply(
