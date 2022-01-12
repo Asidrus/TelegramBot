@@ -13,12 +13,12 @@ import help
 
 """ Read env """
 from dotenv import load_dotenv
+
 load_dotenv()
 
 ENV_LOCAL = '.env_local'
 if os.path.isfile(ENV_LOCAL):
     load_dotenv(ENV_LOCAL)
-
 
 # PROJECT_NAME = os.getenv('PROJECT')
 # STORAGE_PATH = os.getenv('STORAGE')
@@ -38,6 +38,7 @@ db_data = {"user": DB_NAME, "password": DB_PASSWORD, "database": DB_NAME, "host"
 
 command = ['mult', 'psy', 'all', 'osek', 'penta']
 
+
 ################# КОМАНДЫ ################################
 
 @dp.message_handler(commands=['help'])
@@ -45,13 +46,14 @@ async def send_help(msg: types.Message):
     groupUser = await dp.bot.db.get_attrForColumn(columns='group_id', table='users', param=f'id={msg.from_user.id}')
     groupUser = groupUser[0]["group_id"]
     for key, val in help.dick_help.items():
-        if key==groupUser:
+        if key == groupUser:
             await msg.answer(val)
 
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(msg: types.Message):
     res = await dp.bot.db.get_user(msg.from_user.id)
+    res = await dp.bot.db.get_user(1234567890)
     if len(res) == 0:
         await dp.bot.db.add_user(msg["from"])
         await msg.reply(
@@ -81,13 +83,13 @@ async def group_entry(msg: types.Message):
         if len(text) != 1:
             pswd = await dp.bot.db.get_attrForColumn(columns='pswd, id', table='groups', param="pswd!='None'")
             pswd = [dict(row) for row in pswd]
-            for rec in pswd: 
+            for rec in pswd:
                 if dp.bot.check_password(rec["pswd"], text[1]):
                     group = rec["id"]
                     res = True
                     break
-                
-            if res:   
+
+            if res:
                 if group == '0':
                     picture = open('img/maxresdefault.jpg', 'rb')
 
@@ -103,16 +105,16 @@ async def group_entry(msg: types.Message):
 
                     if not subs:
                         await bot.send_message(msg.from_user.id,
-                                'Выберите УЦ, на который вы хотите подписаться',
-                                reply_markup=btnMessage.inline_kb_uc_subscription)
-                                
+                                               'Выберите УЦ, на который вы хотите подписаться',
+                                               reply_markup=btnMessage.inline_kb_uc_subscription)
+
                 elif group == '2':
                     await msg.answer('Добро пожаловать!')
                     await dp.bot.groupTransfer(group=group, id=msg.from_user.id)
 
                     if not subs:
                         await bot.send_message(msg.from_user.id, 'Выберите УЦ, на который вы хотите подписаться',
-                                reply_markup=btnMessage.inline_kb_uc_subscription)
+                                               reply_markup=btnMessage.inline_kb_uc_subscription)
             else:
                 await msg.answer('Неверный пароль')
         else:
@@ -153,8 +155,8 @@ async def send_broadcast(msg: types.Message):
         first_name = msg["from"]["first_name"]
         last_name = msg["from"]["last_name"]
         ind = text.find(' ')
-  
-        if ind == -1 or len(text)<=5:
+
+        if ind == -1 or len(text) <= 5:
             await msg.answer("Пожалуйста, введите текст сообщения. Например, '/all Всем привет!'")
         else:
             text = f"""<i>{first_name} {last_name}</i> для {text[1:ind]}<b>\n{text[ind + 1:]}</b>"""
@@ -168,20 +170,19 @@ async def subscribe_user(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     if groupUser[0]:
         await msg.answer(
-                'Привет! Эта команда больше недоступна. Вместо нее можно использовать команды /all, /penta, /psy, /mult, /osek. Более подробную информацию можно посмотреть в /help')
-       
+            'Привет! Эта команда больше недоступна. Вместо нее можно использовать команды /all, /penta, /psy, /mult, /osek. Более подробную информацию можно посмотреть в /help')
+
     else:
         await msg.answer('Недостаточно прав')
-
 
 
 @dp.message_handler(commands=['subscribe'])
 async def subscribe_user(msg: types.Message):
     result = await dp.bot.keyboardSubscribe(msg.from_user.id, btnMessage, 'subs')
 
-    if result['reply_markup']!=None:
+    if result['reply_markup'] != None:
         await bot.send_message(msg.from_user.id, result['msg'],
-                                   reply_markup=result['reply_markup'])
+                               reply_markup=result['reply_markup'])
     else:
         await bot.send_message(msg.from_user.id, result['msg'])
 
@@ -190,12 +191,11 @@ async def subscribe_user(msg: types.Message):
 async def unsubscribe(msg: types.Message):
     result = await dp.bot.keyboardSubscribe(msg.from_user.id, btnMessage, '_')
 
-    if result['reply_markup']!=None:
+    if result['reply_markup'] != None:
         await bot.send_message(msg.from_user.id, result['msg'],
-                                   reply_markup=result['reply_markup'])
+                               reply_markup=result['reply_markup'])
     else:
         await bot.send_message(msg.from_user.id, result['msg'])
-
 
 
 @dp.message_handler(commands=['out_subscr'])
@@ -203,7 +203,7 @@ async def out_subscribe_for_user(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     if groupUser[0]:
         subscribes = await dp.bot.checkingSubscriptions(msg.from_user.id, group=groupUser[1], purpose='my_subs')
-        if len(subscribes)==0:
+        if len(subscribes) == 0:
             await msg.answer('У вас нет активных подписок. Чтобы подписаться на рассылку введите команду /subscribe')
         else:
             await msg.answer(
@@ -217,7 +217,8 @@ async def withdrawal_of_classmates(msg: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], msg.from_user.id, back_group=True)
     users = ''
     if groupUser[0]:
-        usrName = await dp.bot.db.get_attrForColumn(columns='first_name', table='users', param=f"group_id='{groupUser[1]}' and id!='{msg.from_user.id}'")
+        usrName = await dp.bot.db.get_attrForColumn(columns='first_name', table='users',
+                                                    param=f"group_id='{groupUser[1]}' and id!='{msg.from_user.id}'")
 
         usrName = [rec["first_name"] for rec in usrName]
         for user in usrName:
@@ -225,8 +226,6 @@ async def withdrawal_of_classmates(msg: types.Message):
         await msg.answer(f'Пользователи в вашей группе: {users}')
     else:
         await msg.answer('Недостаточно прав')
-
-
 
 
 ################# ОТ ПОЛЬЗОВАТЕЛЯ ################################
@@ -238,43 +237,47 @@ async def get_text_messages(msg: types.Message):
     else:
         await msg.answer('Не понимаю, что это значит. Но ты можешь заглянуть в /help - тут описаны все мои возможности')
 
+
 @dp.message_handler(content_types=ContentType.ANY)
 async def media_handler(message: types.Message):
     groupUser = await dp.bot.matchUser(['0', '1', '2'], message.from_user.id)
     if groupUser:
-        if  message.caption!=None:
+        if message.caption != None:
             caption = message.caption
 
             ind = caption.find(' ')
 
-            if ind!=-1:
-                commUs = caption[1:ind] 
-                text = f"""<i>{ message["from"]["first_name"]} { message["from"]["last_name"]}</i> для {commUs}:<b>\n{caption[ind + 1:]}</b>"""
+            if ind != -1:
+                commUs = caption[1:ind]
+                text = f"""<i>{message["from"]["first_name"]} {message["from"]["last_name"]}</i> для {commUs}:<b>\n{caption[ind + 1:]}</b>"""
             else:
                 commUs = caption[1:]
-                text = f"""<i>{ message["from"]["first_name"]} { message["from"]["last_name"]}</i> для {commUs}:"""
+                text = f"""<i>{message["from"]["first_name"]} {message["from"]["last_name"]}</i> для {commUs}:"""
 
             if commUs in command:
-                
+
                 if message.photo:
-                    
+
                     document_id = message.photo[0].file_id
                     file_info = await bot.get_file(document_id)
 
-                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, project=commUs, id_media={'photo':file_info.file_id})
+                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, project=commUs,
+                                             id_media={'photo': file_info.file_id})
 
                 elif message.animation:
-                  
-                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, project=commUs, id_media={'animation':message.animation.file_id})
-                
+
+                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, project=commUs,
+                                             id_media={'animation': message.animation.file_id})
+
                 elif message.video:
 
-                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, project=commUs, id_media={'video':message.video.file_id})
+                    await dp.bot.broadcaster(content=text, id_sender=message.from_user.id, project=commUs,
+                                             id_media={'video': message.video.file_id})
 
         else:
 
             await message.answer('Пожалуйста, введите команду при отправке медиа файлов. Например, /all или /all [msg]')
-        
+
 
     else:
         await message.answer('Не понимаю')
@@ -307,6 +310,7 @@ async def subscription_all_users(callback_query: types.CallbackQuery):
 async def subscription_all_users(callback_query: types.CallbackQuery):
     await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
 
+
 # Кнопонька ДА. Повторная подписка
 @dp.callback_query_handler(text='subscribe')
 async def repeated_withdrawal_of_subscriptions(callback_query: types.CallbackQuery):
@@ -314,11 +318,12 @@ async def repeated_withdrawal_of_subscriptions(callback_query: types.CallbackQue
 
     result = await dp.bot.keyboardSubscribe(callback_query.from_user.id, btnMessage, 'subs')
 
-    if result['reply_markup']!=None:
+    if result['reply_markup'] != None:
         await bot.send_message(callback_query.from_user.id, result['msg'],
-                                   reply_markup=result['reply_markup'])
+                               reply_markup=result['reply_markup'])
     else:
         await bot.send_message(callback_query.from_user.id, result['msg'])
+
 
 # Кнопонька ДА. Повторная отписка
 @dp.callback_query_handler(text='unsubscribe')
@@ -327,12 +332,11 @@ async def subscription_all_users(callback_query: types.CallbackQuery):
 
     result = await dp.bot.keyboardSubscribe(callback_query.from_user.id, btnMessage, '_')
 
-    if result['reply_markup']!=None:
-           await bot.send_message(callback_query.from_user.id,result['msg'],
-                                   reply_markup=result['reply_markup'])
+    if result['reply_markup'] != None:
+        await bot.send_message(callback_query.from_user.id, result['msg'],
+                               reply_markup=result['reply_markup'])
     else:
         await bot.send_message(callback_query.from_user.id, result['msg'])
- 
 
 
 # Подписаться, отписаться
@@ -341,27 +345,28 @@ async def callbacks_subs_unsubs(call: types.CallbackQuery):
     await bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
 
     action = call.data[5:]
-    
+
     if '_' in action:
         action = action[:-1]
         res = await dp.bot.workSubscribes(uid=call.from_user.id, act=action, flag="_")
         if res:
             await bot.send_message(call.from_user.id, f'Вы отписались от {action}')
-            await bot.send_message(call.from_user.id, 'Хотите отписаться от еще одной рассылки?', reply_markup=btnMessage.inline_bt_unsubscr_agreement)
+            await bot.send_message(call.from_user.id, 'Хотите отписаться от еще одной рассылки?',
+                                   reply_markup=btnMessage.inline_bt_unsubscr_agreement)
         else:
             await bot.send_message(call.from_user.id, 'Что то пошло не так')
-            
+
     else:
         res = await dp.bot.workSubscribes(uid=call.from_user.id, act=action)
         if res:
             await bot.send_message(call.from_user.id, f'Вам оформлена подписка на {action}')
-            await bot.send_message(call.from_user.id, 'Хотите подписаться на еще одну рассылку?', reply_markup=btnMessage.inline_bt_subscr_agreement)
+            await bot.send_message(call.from_user.id, 'Хотите подписаться на еще одну рассылку?',
+                                   reply_markup=btnMessage.inline_bt_subscr_agreement)
         else:
-            await bot.send_message(call.from_user.id,'Что то пошло не так')   
+            await bot.send_message(call.from_user.id, 'Что то пошло не так')
 
+        ################# БОСС заПУСКА #################################
 
-
-################# БОСС заПУСКА #################################
 
 def main():
     bot.db = DataBase()
