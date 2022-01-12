@@ -1,7 +1,0 @@
-.env_local
-.idea
-credentials.py
-.env
-.gitignore
-__pycache__
-/libs/__pycache__
