@@ -163,3 +163,22 @@ class TelegramBot(Bot):
             return True
         except Exception as e:
             return False
+    
+    async def keyboardSubscribe(self, user_id, btnMessage, why_keybr):    
+        groupUser = await self.matchUser(['0', '1', '2'], user_id, back_group=True)
+        if groupUser[0]:
+            if why_keybr=='_':
+                subs_kwd = btnMessage.addKeybrd(await self.checkingSubscriptions(user_id, group=groupUser[1], purpose='subs'), "_") 
+                if subs_kwd[1] == 0:
+                    return {'msg':'У вас нет активных подписок. Чтобы подписаться на рассылки, введите команду /subscribe', 'reply_markup':None}
+                else:
+                    return {'msg':'Выберите рассылку от которой хотите отписаться', 'reply_markup':subs_kwd[0]}
+                    
+            elif why_keybr=="subs":
+                subs_kwd = btnMessage.addKeybrd(await self.checkingSubscriptions(user_id, group=groupUser[1], purpose='subs')) 
+                if subs_kwd[1] == 0:
+                    return {'msg':'Вы уже подписаны на все предоставляемые нами подписки. Если хотите отписаться, введите команду /unsubscribe', 'reply_markup':None}
+                else:
+                    return {'msg':'Выберите подписку на которую вы хотите подписаться:', 'reply_markup':subs_kwd[0]}
+        else:
+            return {'msg':'Недостаточно прав', 'reply_markup':None}

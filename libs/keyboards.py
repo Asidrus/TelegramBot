@@ -10,7 +10,7 @@ class btnMessage():
     inline_bt_subscr_spo = InlineKeyboardButton("Все УЦ", callback_data='subs_All tests')
 
     inline_bt_subscr_yes = InlineKeyboardButton("Да", callback_data='subscribe')
-    inline_bt_unsubscr_yes = InlineKeyboardButton("Да", callback_data='')
+    inline_bt_unsubscr_yes = InlineKeyboardButton("Да", callback_data='unsubscribe')
 
     inline_bt_subscr_want = InlineKeyboardButton("Не хочу", callback_data='dont_want')
    
@@ -27,7 +27,7 @@ class btnMessage():
 
 
 
-    async def addKeybrd(self, subscribes, flag=''):
+    def addKeybrd(self, subscribes, flag=''):
         count = 0
         inline_kb_full = InlineKeyboardMarkup(row_width=2)
         for key in subscribes.keys():
