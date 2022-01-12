@@ -91,10 +91,13 @@ def translit(text):
                 'П', 'п', 'Р', 'р', 'С', 'с', 'Т', 'т', 'У', 'у', 'Ф', 'ф', 'Х', 'х', 'Ц', 'ц', 'Ч', 'ч',
                 'Ш', 'ш', 'Щ', 'щ', 'Ы', 'ы', 'Э', 'э', 'Ю', 'ю', 'Я', 'я']
     result = ''
-    for sym in text:
-        if sym in alphabet:
-            simb = dic[sym]
-        else:
-            simb = sym
-        result = result + simb
-    return result
+    if text is not None:
+        for sym in text:
+            if sym in alphabet:
+                simb = dic[sym]
+            else:
+                simb = sym
+            result = result + simb
+        return result
+    else:
+        return ''
