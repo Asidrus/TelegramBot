@@ -2,6 +2,6 @@
 .idea
 credentials.py
 .env
-.gitignor
+.gitignore
 __pycache__
 /libs/__pycache__
