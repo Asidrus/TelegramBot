@@ -5,11 +5,14 @@ import sys
 
 class Protocol:
     """
-    protocol v 0.2
+    protocol v 0.2.1
     text and image transmission
 
     @changelog v 0.2
     remove debug
+    @changelog v 0.2.1
+    add check on stop_reading flag
+    if not True return None
     """
     header = [{'head': "request", "data": {"len": 8, "offset": 0, "value": None}},
               {'head': "contentType", "data": {"len": 1, "offset": 8, "value": None}},
@@ -168,14 +171,16 @@ async def readMessage(reader) -> dict:
         if not chunk:
             break
         protocol.setChunk(chunk)
-    return protocol.data
+    if not protocol.STOP_READING:
+        return None
+    else:
+        return protocol.data
 
 
 async def handlerIn(**kwargs):
-    if kwargs['debug'] == 1:
-        return {"contentType": "json", "content": {"text": "ok"}}
-    else: 
-        return {"contentType": "json", "content": {"text": "error"}}
+    print(kwargs)
+    return {"contentType": "json", "content": {"text": "ok"}}
+    # return {"contentType": "json", "content": {"text": "error"}}
 
 
 async def handlerOut(**kwargs):
