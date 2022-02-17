@@ -10,10 +10,10 @@ log = logging.getLogger('broadcast')
 counter = 0
 
 
-
 class TelegramBot(Bot):
     db = None
-    subscribes = {'General': 'from_users', 'All tests': 'res_all_tests', 'Osek': 'rt_osek', 'Pentaschool': 'rt_penta', 'Psy': 'rt_psy', 'Mult': 'rt_mult', 'debug': 'debug'}
+    subscribes = {'General': 'from_users', 'All tests': 'res_all_tests', 'Osek': 'rt_osek', 'Pentaschool': 'rt_penta',
+                  'Psy': 'rt_psy', 'Mult': 'rt_mult', 'debug': 'debug'}
 
     # для отправки сообщения 1 пользователю
     async def _send_message(self, user_id: int, text: str, disable_notification: bool = False) -> bool:
@@ -44,7 +44,8 @@ class TelegramBot(Bot):
         return False
 
     # перебор id пользователей
-    async def broadcaster(self, contentType='text', content=None, id_sender=None, image=None, project=None, id_media=None) -> int:
+    async def broadcaster(self, contentType='text', content=None, id_sender=None, image=None, project=None,
+                          id_media=None) -> int:
         if contentType == 'text':
             pass
         elif contentType == 'json':
@@ -61,26 +62,28 @@ class TelegramBot(Bot):
             users_id = await self.db.get_attrForColumn(columns='id', table='users', param="group_id!='3'")
 
             users_id = [rec["id"] for rec in users_id]
-
         elif project == 'mult' or project == "penta" or project == "psy" or project == "osek":
             if id_sender is not None:
-                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{project}='true' OR uid='{id_sender}'")
+                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes',
+                                                           param=f"rt_{project}='true' OR uid='{id_sender}'")
             else:
-                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes', param=f"rt_{project}='true' or res_all_tests='true'")
-                
+                users_id = await self.db.get_attrForColumn(columns='uid', table='subscribes',
+                                                           param=f"rt_{project}='true' or res_all_tests='true'")
             users_id = [rec["uid"] for rec in users_id]
-
-           
-        elif project == 'debug' or project == "":
+        elif (project == 'debug') or (project == ""):
             users_id = await self.db.fetch(
-                    f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
+                f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
+            users_id = [rec["id"] for rec in users_id]
+        else:
+            users_id = await self.db.fetch(
+                f"SELECT users.id FROM users LEFT JOIN subscribes ON users.id=subscribes.uid where debug='true';")
             users_id = [rec["id"] for rec in users_id]
 
-        if  len(users_id) == 1 and len(users_id) == 0 and id_sender==None:
+        if len(users_id) == 1 and len(users_id) == 0 and id_sender == None:
             await self._send_message(str(id_sender), 'Пользователи не найдены')
-        else: 
+        else:
             try:
-        
+
                 for id in users_id:
                     if await self._send_message(str(id), f'{content}'):
                         # обнулить подписку пользователя
@@ -91,7 +94,7 @@ class TelegramBot(Bot):
                         await self.send_photo(chat_id=id, photo=image)
                         await asyncio.sleep(.05)
 
-                    if  id_media is not None:
+                    if id_media is not None:
                         if 'animation' in id_media.keys():
                             await self.send_animation(chat_id=id, animation=id_media['animation'])
                             await asyncio.sleep(.05)
@@ -103,8 +106,6 @@ class TelegramBot(Bot):
 
             except Exception as e:
                 raise e
-
-
 
     # Для изменения данных в таблицах subscribes и users
     async def groupTransfer(self, group, id, column=None):
@@ -129,56 +130,66 @@ class TelegramBot(Bot):
         else:
             return res
 
-
     def check_password(self, hashed_password, user_password):
         password, salt = hashed_password.split(':')
         return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
 
     async def checkingSubscriptions(self, id, group=None, purpose=None):
         subscribes = ''
-        subs = await self.db.get_attrForColumn(columns='debug, from_users as "General", res_all_tests as "All tests", rt_penta as "Pentaschool", rt_psy as "Psy", rt_mult as "Mult", rt_osek as "Osek"', table='subscribes', param=f'uid={id}')
+        subs = await self.db.get_attrForColumn(
+            columns='debug, from_users as "General", res_all_tests as "All tests", rt_penta as "Pentaschool", rt_psy as "Psy", rt_mult as "Mult", rt_osek as "Osek"',
+            table='subscribes', param=f'uid={id}')
         subs = [dict(row) for row in subs]
-        if group!='0':
-                del subs[0]['debug']
-        if purpose=='subs':
+        if group != '0':
+            del subs[0]['debug']
+        if purpose == 'subs':
             return subs[0]
-        elif purpose=='my_subs':
+        elif purpose == 'my_subs':
             for key, val in subs[0].items():
                 if val:
                     subscribes = subscribes + f' "{key}" '
             return subscribes
-        elif purpose=='УЦ':
-            if (subs[0]['Pentaschool']==False) and (subs[0]['Psy']==False) and (subs[0]['Mult']==False) and (subs[0]['Osek']==False):
+        elif purpose == 'УЦ':
+            if (subs[0]['Pentaschool'] == False) and (subs[0]['Psy'] == False) and (subs[0]['Mult'] == False) and (
+                    subs[0]['Osek'] == False):
                 return False
             else:
                 return True
-    
+
     async def workSubscribes(self, uid, act, flag=None):
         try:
             if flag is None:
-                await self.db.updateData(column=f'{self.subscribes[act]}', param='1', table = 'subscribes', where='uid', id=uid)
+                await self.db.updateData(column=f'{self.subscribes[act]}', param='1', table='subscribes', where='uid',
+                                         id=uid)
             else:
-                await self.db.updateData(column=f'{self.subscribes[act]}', param='0', table = 'subscribes', where='uid', id=uid)
+                await self.db.updateData(column=f'{self.subscribes[act]}', param='0', table='subscribes', where='uid',
+                                         id=uid)
 
             return True
         except Exception as e:
             return False
-    
-    async def keyboardSubscribe(self, user_id, btnMessage, why_keybr):    
+
+    async def keyboardSubscribe(self, user_id, btnMessage, why_keybr):
         groupUser = await self.matchUser(['0', '1', '2'], user_id, back_group=True)
         if groupUser[0]:
-            if why_keybr=='_':
-                subs_kwd = btnMessage.addKeybrd(await self.checkingSubscriptions(user_id, group=groupUser[1], purpose='subs'), "_") 
+            if why_keybr == '_':
+                subs_kwd = btnMessage.addKeybrd(
+                    await self.checkingSubscriptions(user_id, group=groupUser[1], purpose='subs'), "_")
                 if subs_kwd[1] == 0:
-                    return {'msg':'У вас нет активных подписок. Чтобы подписаться на рассылки, введите команду /subscribe', 'reply_markup':None}
+                    return {
+                        'msg': 'У вас нет активных подписок. Чтобы подписаться на рассылки, введите команду /subscribe',
+                        'reply_markup': None}
                 else:
-                    return {'msg':'Выберите рассылку от которой хотите отписаться', 'reply_markup':subs_kwd[0]}
-                    
-            elif why_keybr=="subs":
-                subs_kwd = btnMessage.addKeybrd(await self.checkingSubscriptions(user_id, group=groupUser[1], purpose='subs')) 
+                    return {'msg': 'Выберите рассылку от которой хотите отписаться', 'reply_markup': subs_kwd[0]}
+
+            elif why_keybr == "subs":
+                subs_kwd = btnMessage.addKeybrd(
+                    await self.checkingSubscriptions(user_id, group=groupUser[1], purpose='subs'))
                 if subs_kwd[1] == 0:
-                    return {'msg':'Вы уже подписаны на все предоставляемые нами подписки. Если хотите отписаться, введите команду /unsubscribe', 'reply_markup':None}
+                    return {
+                        'msg': 'Вы уже подписаны на все предоставляемые нами подписки. Если хотите отписаться, введите команду /unsubscribe',
+                        'reply_markup': None}
                 else:
-                    return {'msg':'Выберите подписку на которую вы хотите подписаться:', 'reply_markup':subs_kwd[0]}
+                    return {'msg': 'Выберите подписку на которую вы хотите подписаться:', 'reply_markup': subs_kwd[0]}
         else:
-            return {'msg':'Недостаточно прав', 'reply_markup':None}
+            return {'msg': 'Недостаточно прав', 'reply_markup': None}
